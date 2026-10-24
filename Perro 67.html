@@ -1,0 +1,2037 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Perro 67</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden;font-family:Arial,sans-serif;background:#111}
+#menu,#shop,#inventory,#pause,#multiplayerPanel,#profile{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(0,0,0,0.92);color:#fff;z-index:20}
+#menu h1{font-size:48px;margin-bottom:30px;letter-spacing:2px;color:#e0e0e0}
+#menu{flex-direction:row;justify-content:space-evenly;gap:6vw;padding:5vh 8vw;background:radial-gradient(ellipse at 22% 50%,#183c35 0,#101c26 38%,#080d16 100%);overflow-y:auto}
+.menuBrand{width:min(50vw,620px);text-align:left}
+.menuBrand .menuEyebrow{font-size:14px;letter-spacing:6px;color:#91e5ad;margin:0 0 20px;text-transform:uppercase}
+#menu .menuBrand h1{font-size:clamp(64px,10vw,128px);line-height:.82;letter-spacing:2px;margin:0;color:#f1f4e9;text-shadow:0 8px 28px #000}
+#menu .menuBrand h1 span{color:#74e59a}
+.menuSubtitle{color:#aebbb8;font-size:18px;letter-spacing:1px;margin-top:26px}
+#menuNav{width:min(330px,38vw);display:flex;flex-direction:column;align-items:stretch;padding:22px;background:rgba(5,13,18,.72);border:1px solid rgba(151,232,182,.25);border-radius:14px;box-shadow:0 18px 60px #0008}
+#menuNav .menuNavLabel{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#879e95;margin:0 0 12px 8px}
+#menuNav button{margin:5px 0;text-align:left;width:100%;padding:14px 18px;font-size:17px;background:linear-gradient(110deg,#172c2b,#1d2332);border-color:#354c47}
+#menuNav button:hover{background:linear-gradient(110deg,#245241,#30324a);border-color:#83d49a;transform:translateX(3px)}
+#menuNav .menuCoins{margin:15px 4px 0;color:#b8c9c0;font-size:14px}
+@media(max-width:700px){#menu{flex-direction:column;justify-content:center;gap:26px;padding:28px 20px}.menuBrand{width:100%;text-align:center}.menuBrand .menuEyebrow{letter-spacing:4px;font-size:11px;margin-bottom:12px}#menu .menuBrand h1{font-size:clamp(54px,16vw,88px)}.menuSubtitle{font-size:14px;margin-top:14px}#menuNav{width:min(100%,380px);padding:15px}#menuNav button{padding:11px 15px;font-size:16px}}
+#ui{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-start;color:#fff;font-size:16px;z-index:15;pointer-events:none}
+#leftHud,#rightHud{display:flex;flex-direction:column;gap:6px;background:rgba(0,0,0,0.45);padding:10px 14px;border-radius:8px;max-width:48%}
+#rightHud{align-items:flex-end;text-align:right}
+#comboText{position:absolute;top:90px;left:50%;transform:translateX(-50%);font-size:30px;font-weight:bold;color:#ffe54c;z-index:15;pointer-events:none;text-align:center;text-shadow:0 2px 8px #000}
+#modeText{position:absolute;top:130px;left:50%;transform:translateX(-50%);font-size:16px;color:#ccc;z-index:15;pointer-events:none;text-align:center;background:rgba(0,0,0,0.4);padding:4px 12px;border-radius:20px}
+#roomCode{position:absolute;bottom:14px;left:14px;font-size:14px;color:#aaa;z-index:15;pointer-events:none}
+#hitMarker{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:16;pointer-events:none;opacity:0;transition:opacity 0.1s}
+#enemyLayer{position:absolute;inset:0;pointer-events:none;z-index:5}
+.enemySprite{position:absolute;width:80px;height:80px;transform:translate(-50%,-50%);object-fit:contain;transition:transform 0.1s;cursor:crosshair}
+button{margin:8px;padding:12px 28px;font-size:17px;background:#1a1a2e;color:#e0e0e0;border:1px solid #444;border-radius:6px;cursor:pointer;transition:background 0.2s}
+button:hover{background:#2a2a4e}
+input{margin:10px;padding:10px 16px;font-size:17px;color:#000;border-radius:6px;border:1px solid #666}
+canvas{display:block;position:absolute;inset:0;z-index:1;cursor:none}
+#weaponCanvas{z-index:7;pointer-events:none}
+.hidden{display:none !important}
+.badge{padding:4px 10px;border-radius:20px;background:rgba(255,255,255,0.15);display:inline-block;font-size:13px}
+.small{font-size:13px;opacity:0.8}
+#deathMsg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:36px;font-weight:bold;color:#ff4444;z-index:20;pointer-events:none;opacity:0;text-shadow:0 2px 12px #000;transition:opacity 0.3s}
+#crosshair{position:absolute;pointer-events:none;z-index:16;transform:translate(-50%,-50%)}
+#profile select{min-width:260px;margin:7px;padding:10px 12px;background:#171725;color:#eee;border:1px solid #555;border-radius:6px;font-size:16px}
+.profileAvatar{width:46px;height:46px;padding:0;margin:0 0 10px;border-radius:50%;font-size:24px;background:#172c2b;border-color:#44685a}
+#devPanel{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:30;overflow:auto}
+#inGameAdminButton{position:fixed;top:12px;right:12px;z-index:25;margin:0;padding:9px 13px;background:#10271e;border-color:#00aa66;color:#9cffc6;pointer-events:auto;font-size:14px}
+#swordCursor{position:absolute;left:0;top:0;width:94px;height:94px;z-index:8;pointer-events:none;display:none;transform-origin:50% 50%;filter:drop-shadow(0 3px 5px #000)}
+.enemyHitbox{outline:2px solid #33ff77;outline-offset:-3px;border-radius:50%}
+.swordPowerItem{position:absolute;width:42px;height:42px;z-index:7;pointer-events:none;border:3px solid #d8a8ff;border-radius:4px;background:conic-gradient(#a24bff 25%,#140d20 0 50%,#a24bff 0 75%,#140d20 0);background-size:18px 18px;box-shadow:0 0 18px #9b30e8,0 0 4px #fff;animation:pixelPulse .7s steps(2,end) infinite alternate}
+.swordPowerItem::after{content:'2×';position:absolute;inset:0;display:grid;place-items:center;color:#fff;font:bold 13px Arial;text-shadow:1px 1px 2px #000}
+@keyframes pixelPulse{to{filter:brightness(1.6);transform:scale(1.12)}}
+body.playing #ui,body.playing #modeText,body.playing #roomCode{display:none!important}
+.pauseStats{width:min(620px,90vw);max-height:48vh;overflow:auto;background:#10151fe8;border:1px solid #49566b;border-radius:12px;padding:16px 20px;line-height:1.65;color:#dbe7fa;text-align:left;margin:10px 0 16px}
+.pauseStats strong{color:#fff}.sukunaFinger{position:absolute;width:48px;height:64px;z-index:9;cursor:pointer;pointer-events:auto;filter:drop-shadow(0 0 12px #a855f7);animation:fingerFloat .8s ease-in-out infinite alternate}
+.sukunaFinger svg{width:100%;height:100%;overflow:visible}.sukunaFinger:hover{transform:scale(1.18)}
+@keyframes fingerFloat{to{translate:0 -6px;filter:drop-shadow(0 0 18px #d8a8ff)}}
+.sukunaCut{position:fixed;z-index:12;pointer-events:none;width:150px;height:5px;transform-origin:left center;background:linear-gradient(90deg,transparent,#fff,#efc8ff,#a435ff,transparent);box-shadow:0 0 12px #c45cff;animation:cutFlash .22s ease-out forwards}
+@keyframes cutFlash{to{opacity:0;scale:1.5 1}}
+</style>
+</head>
+<body>
+
+<!-- MENÚ PRINCIPAL -->
+<div id="menu">
+  <div class="menuBrand">
+    <p class="menuEyebrow">Una aventura perruna</p>
+    <h1>PERRO<br><span>67</span></h1>
+    <p class="menuSubtitle">Cortá, apuntá y cuidá tu racha.</p>
+  </div>
+  <nav id="menuNav" aria-label="Menú principal">
+    <p class="menuNavLabel">Menú principal</p>
+    <button onclick="startGame()">🎮 Empezar</button>
+    <button onclick="openMultiplayerPanel()">🌐 Multijugador</button>
+    <button onclick="openShop()">🛒 Tienda</button>
+    <button onclick="openInventory(true)">📦 Inventario</button>
+    <button onclick="openProfile()">👤 Perfil</button>
+    <button id="adminMenuButton" class="hidden" onclick="openDevPanel()">⌨️ Comandos</button>
+    <p class="menuCoins">Monedas guardadas: <span id="menuCoins">0</span> 💰</p>
+  </nav>
+</div>
+
+<!-- PERFIL -->
+<div id="profile" class="hidden">
+  <button class="profileAvatar" title="Opciones de perfil" aria-label="Opciones de perfil" onclick="toggleAdminEntry()">👤</button>
+  <h1>Perfil</h1>
+  <div id="adminEntry" class="hidden" style="display:flex;gap:6px;align-items:center;margin:0 0 10px">
+    <input id="adminUnlockInput" placeholder="Comando de perfil" autocomplete="off" style="margin:0;width:210px" onkeydown="if(event.key==='Enter')unlockAdmin()">
+    <button onclick="unlockAdmin()" style="margin:0;padding:9px 12px">↵</button>
+  </div>
+  <p id="profileRank" style="color:#aaa;margin:0 0 10px"></p>
+  <label for="profileTitleSelect">Título equipado</label>
+  <select id="profileTitleSelect"></select>
+  <label for="favoriteWeapon1">Armas preferidas (hasta 3)</label>
+  <select id="favoriteWeapon1"></select>
+  <select id="favoriteWeapon2"></select>
+  <select id="favoriteWeapon3"></select>
+  <div id="profileMessage" class="small" style="min-height:20px;color:#88ff99"></div>
+  <button onclick="saveProfile()">💾 Guardar perfil</button>
+  <button onclick="closeProfile()">← Volver</button>
+</div>
+
+<!-- MULTIJUGADOR -->
+<div id="multiplayerPanel" class="hidden">
+  <h1>🌐 Multijugador</h1>
+  <button onclick="createRoom()">➕ Crear sala</button>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;margin:10px 0">
+    <input id="joinCodeInput" maxlength="8" placeholder="Código de sala">
+    <button onclick="joinRoom()">Unirse</button>
+  </div>
+  <p style="color:#888;font-size:13px">El multijugador funciona entre pestañas del mismo navegador</p>
+  <button onclick="closeMultiplayerPanel()">← Volver</button>
+</div>
+
+<!-- TIENDA -->
+<div id="shop" class="hidden">
+  <h1>🛒 Tienda</h1>
+  <div id="coinsText" style="font-size:22px;margin-bottom:10px">💰 Monedas: 0</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+    <button onclick="buyWeapon('ak')">🔫 AK-47 (1500)</button>
+    <button onclick="buyWeapon('sukuna')">🩸 Sukuna (6000) — arma y árbol de evolución</button>
+    <button onclick="buyWeapon('espada')">🗡️ Espada (2500)</button>
+    <button onclick="buyPurpura()">🟣 Púrpura (1500)</button>
+    <button onclick="buyInvert()">🔄 Inversión (2500)</button>
+    <button onclick="buyInvertScreen()">📺 Inv. pantalla (2500)</button>
+    <button onclick="buyEscudo()" style="grid-column:span 2">🛡️ Escudo de Combo x3 (1500)</button>
+    <button onclick="buyMonster()" style="grid-column:span 2">🥤 Monster Blanca x1 (5000) — 1 min de boost</button>
+  </div>
+  <button onclick="closeShop()">← Volver</button>
+</div>
+
+<!-- INVENTARIO -->
+<div id="inventory" class="hidden">
+  <h1>📦 Inventario</h1>
+  <div id="invList" style="display:flex;flex-direction:column;align-items:center"></div>
+  <button onclick="closeInventory()">← Volver</button>
+</div>
+
+<!-- PAUSA -->
+<div id="pause" class="hidden">
+  <h1>⏸ Pausa</h1>
+  <div id="pauseStats" class="pauseStats"></div>
+  <button onclick="resumeGame()">▶ Reanudar</button>
+  <button onclick="goToMenu()">🏠 Menú</button>
+</div>
+
+<!-- PANEL DEV -->
+<div id="devPanel" class="hidden" style="background:rgba(0,0,0,0.97);border:1px solid #333">
+  <div style="text-align:center;margin-bottom:18px">
+    <span style="font-size:11px;letter-spacing:4px;color:#555;text-transform:uppercase">— acceso desarrollador —</span>
+    <h2 style="margin:6px 0 0;font-size:26px;color:#00ff88">⌨️ Consola de comandos</h2>
+  </div>
+  <div id="devLog" style="width:420px;max-width:90vw;height:160px;overflow-y:auto;background:#0a0a0a;border:1px solid #222;border-radius:6px;padding:10px;font-family:monospace;font-size:13px;color:#00ff88;margin-bottom:14px"></div>
+  <div style="display:flex;gap:8px;width:420px;max-width:90vw">
+    <input id="devInput" placeholder="Escribí un comando..." style="flex:1;background:#111;color:#00ff88;border:1px solid #333;font-family:monospace;font-size:15px;border-radius:6px;padding:10px 14px;margin:0" onkeydown="if(event.key==='Enter')runDevCommand()">
+    <button onclick="runDevCommand()" style="padding:10px 18px;background:#003322;border-color:#00ff88;color:#00ff88;margin:0">▶ OK</button>
+  </div>
+  <div style="margin-top:16px;color:#444;font-size:12px;font-family:monospace;text-align:left;width:420px;max-width:90vw;line-height:1.8">
+    /kills &lt;n&gt; — otorgar kills<br>
+    /monedas &lt;n&gt; — otorgar monedas<br>
+    /purpura &lt;n&gt; — otorgar cargas púrpura<br>
+    /probabilidad gris &lt;n&gt; — multiplicar prob. del gris<br>
+    /probabilidad dorado &lt;n&gt; — multiplicar prob. del dorado<br>
+    /probabilidad rojo &lt;n&gt; — multiplicar prob. del rojo<br>
+    /probabilidad multiplicador &lt;n&gt; — multiplicar prob. del objeto Multiplicador<br>
+    /probabilidad &lt;n&gt; — multiplicar todas a la vez<br>
+    /probabilidad N — volver todo a la normalidad<br>
+    /fase sukuna &lt;1-4&gt; — equipar Sukuna y arrancar en esa fase<br>
+    /reset — resetear todo el progreso
+  </div>
+  <button onclick="closeDevPanel()" style="margin-top:20px;background:#1a0000;border-color:#550000;color:#ff6666">✕ Cerrar</button>
+</div>
+
+<!-- OVERLAY DOMINIO PERRUNO -->
+<div id="dominioOverlay" style="display:none;position:absolute;inset:0;z-index:4;pointer-events:none">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,0.55)"></div>
+  <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none">
+    <div style="font-size:28px;font-weight:bold;color:#aaa;text-shadow:0 0 20px #fff;letter-spacing:3px">犬の領域</div>
+    <div style="font-size:13px;color:#ccc;margin-top:4px">Acertá 5 normales para escapar · 5 fallos = perdés todos los aciertos · 5 fallos totales = fin</div>
+    <div id="dominioContador" style="font-size:20px;color:#fff;margin-top:6px">✅ 0/5 · ❌ 0/5</div>
+  </div>
+</div>
+
+<!-- HUD EN JUEGO -->
+<div id="ui" class="hidden">
+  <div id="leftHud">
+    <div id="kills">💀 Total: 0</div>
+    <div id="sessionKills">🎯 Partida: 0</div>
+    <div id="timeText">⏱ 0s</div>
+    <div id="weaponText">🔫 Pistola</div>
+  </div>
+  <div id="rightHud">
+    <div>💰 <span id="coins">0</span></div>
+    <div>🏆 <span id="rank">Bronce</span></div>
+    <div id="rivalStatus" class="badge">Rival: desconectado</div>
+    <div id="enemyKillsWrap" class="hidden small">Rival kills: <span id="enemyKills">0</span></div>
+    <div class="small">R: habilidad del arma · Q: hitboxes · 1: normal · 2: púrpura · ESC: pausa</div>
+    <button onclick="pauseGame()" style="pointer-events:auto;margin-top:4px;padding:6px 14px;font-size:14px">⏸</button>
+  </div>
+</div>
+<button id="inGameAdminButton" class="hidden" onclick="openDevPanel()">⌨️ Comandos</button>
+
+<div id="comboText"></div>
+<div id="modeText">Modo: Normal</div>
+<div id="roomCode">Sala: -</div>
+<div id="deathMsg">-50 💸</div>
+
+<!-- Crosshair SVG personalizado -->
+<div id="crosshair">
+  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+    <line x1="14" y1="2" x2="14" y2="10" stroke="white" stroke-width="2"/>
+    <line x1="14" y1="18" x2="14" y2="26" stroke="white" stroke-width="2"/>
+    <line x1="2" y1="14" x2="10" y2="14" stroke="white" stroke-width="2"/>
+    <line x1="18" y1="14" x2="26" y2="14" stroke="white" stroke-width="2"/>
+    <circle cx="14" cy="14" r="2.5" fill="none" stroke="white" stroke-width="1.5"/>
+  </svg>
+</div>
+<div id="swordCursor" aria-hidden="true"><svg viewBox="0 0 100 100" width="94" height="94"><path d="M50 7 L61 56 L50 70 L39 56 Z" fill="#dce8f2" stroke="#263746" stroke-width="3"/><path d="M50 12 L55 55 L50 62 L45 55 Z" fill="#fff" opacity=".8"/><path d="M34 62 Q50 57 66 62 L63 70 Q50 66 37 70 Z" fill="#f0b429" stroke="#573c12" stroke-width="3"/><path d="M47 68 L53 68 L58 91 Q50 98 42 91 Z" fill="#704321" stroke="#321c0d" stroke-width="3"/></svg></div>
+
+<div id="enemyLayer"></div>
+<canvas id="gameCanvas"></canvas>
+<canvas id="weaponCanvas" aria-hidden="true"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const weaponCanvas = document.getElementById('weaponCanvas');
+const weaponCtx = weaponCanvas.getContext('2d');
+const crosshairEl = document.getElementById('crosshair');
+const enemyLayer = document.getElementById('enemyLayer');
+
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; weaponCanvas.width = window.innerWidth; weaponCanvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+// Posiciones de enemigos adaptables al canvas
+function getSpots() {
+  const w = canvas.width, h = canvas.height;
+  return [
+    {x: w*0.25, y: h*0.6},
+    {x: w*0.30, y: h*0.48},
+    {x: w*0.42, y: h*0.55},
+    {x: w*0.57, y: h*0.38},
+    {x: w*0.72, y: h*0.32},
+    {x: w*0.76, y: h*0.50},
+    {x: w*0.88, y: h*0.44},
+    {x: w*0.85, y: h*0.60},
+    {x: w*0.65, y: h*0.65},
+  ];
+}
+
+const dogGifSrc = 'https://media1.tenor.com/m/Y-Ve__KPgU0AAAAd/67-meme.gif';
+const dogFallbackSrc = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">' +
+  '<circle cx="40" cy="44" r="22" fill="#9a9a9a"/>' +
+  '<rect x="26" y="50" width="28" height="10" rx="3" fill="#666"/>' +
+  '<rect x="20" y="18" width="12" height="17" rx="4" fill="#777"/>' +
+  '<rect x="48" y="18" width="12" height="17" rx="4" fill="#777"/>' +
+  '<circle cx="33" cy="38" r="3" fill="#333"/>' +
+  '<circle cx="47" cy="38" r="3" fill="#333"/>' +
+  '</svg>'
+);
+
+let gameRunning = false, paused = false, multiplayer = false;
+let devPanelWasPaused = false;
+let adminUnlocked = localStorage.getItem('adminUnlocked') === 'true';
+let currentRoomCode = '', roomChannel = null, presenceTimer = null;
+let roomTimer = 0, gameStartTime = 0;
+let hasPeer = false, lastPeerSeenAt = 0;
+let currentWeapon = localStorage.getItem('weapon') || 'pistola';
+let ownedWeapons = JSON.parse(localStorage.getItem('owned') || '{"pistola":true}');
+let equippedTitle = localStorage.getItem('equippedTitle') || '';
+let favoriteWeapons = (() => { try { return JSON.parse(localStorage.getItem('favoriteWeapons') || '[]'); } catch { return []; } })();
+const rankLevels = [
+  {name:'🥉 Bronce', threshold:0},
+  {name:'🥈 Plata', threshold:2000},
+  {name:'🏅 Oro', threshold:7000},
+  {name:'🥇 Platino', threshold:17000},
+  {name:'💎 Diamante', threshold:30000},
+  {name:'🔥 Asesino', threshold:40000},
+  {name:'💀 Asesino Serial', threshold:55000},
+  {name:'🐾 Asesino Perruno', threshold:100000},
+];
+if (currentWeapon === 'granada') currentWeapon = 'espada';
+if (ownedWeapons.granada) { ownedWeapons.espada = true; delete ownedWeapons.granada; }
+if (currentWeapon === 'bazuca') currentWeapon = 'pistola';
+if (ownedWeapons.bazuca) delete ownedWeapons.bazuca;
+let ownedItems = JSON.parse(localStorage.getItem('items') || '{}');
+let sukunaOwned = !!ownedWeapons.sukuna || localStorage.getItem('sukunaOwned') === 'true';
+if (sukunaOwned) ownedWeapons.sukuna = true;
+let sukunaFingers = 0;
+let sukunaLevel = sukunaOwned ? 1 : 0;
+let sukunaActiveUntil = 0, sukunaCooldownUntil = 0, sukunaActiveLevel = 0;
+let sukunaTickTimer = null, sukunaDomainBoostUntil = 0, sukunaCutUntil = 0;
+let sukunaFingerItems = [];
+let purpuraCharges = parseInt(localStorage.getItem('purpuraCharges') || '0', 10);
+let purpuraBuys = parseInt(localStorage.getItem('purpuraBuys') || '0', 10);
+let purpuraEquipped = localStorage.getItem('purpuraEquipped') === 'true';
+let escudoCharges = parseInt(localStorage.getItem('escudoCharges') || '0', 10);
+let monsterCharges = parseInt(localStorage.getItem('monsterCharges') || '0', 10);
+let monsterActiveUntil = 0;
+let purpuraUsedThisGame = 0;
+let escudoUsedThisGame = false;
+
+// Dominio perruno
+let dominioActivo = false;
+let dominioNormalesAcertados = 0;
+let dominioFallosConsecutivos = 0;
+let dominioEnemigos = [];
+
+// Multiplicadores individuales de probabilidad
+let probGrisMulti   = 1.0;
+let probDoradoMulti = 1.0;
+let probRojoMulti   = 1.0;
+let probMultiplicadorMulti = 1.0;
+
+let selectedMode = 'normal';
+let invert = localStorage.getItem('invert') === 'true';
+let invertScreen = localStorage.getItem('invertScreen') === 'true';
+let kills = parseInt(localStorage.getItem('kills') || '0', 10);
+let coins = parseFloat(localStorage.getItem('coins') || '0') || 0;
+let combo = 0, sukunaCombo = 0, sessionKills = 0;
+let aimX = canvas.width / 2, aimY = canvas.height / 2;
+let remoteAim = {x: 0, y: 0, kills: 0, sessionKills: 0, seen: false};
+let specialActiveUntil = 0, specialCooldownUntil = 0;
+let akBurstTimer = null, akBurstActiveUntil = 0, akBurstCooldownUntil = 0;
+let swordWaveActive = false, swordWaveCooldownUntil = 0, showHitboxes = false, lastSwordPoint = null;
+let swordComboUntil = 0, swordPowerItem = null, swordPowerCollectedThisGame = false;
+let enemies = [];
+let loopStarted = false;
+
+function initEnemies() {
+  const spots = getSpots();
+  enemies = spots.map((s, i) => ({spot: i, x: s.x, y: s.y, alive: false, red: false, spawnAt: 0, el: null}));
+}
+initEnemies();
+
+function safeStore() {
+  localStorage.setItem('kills', String(kills));
+  localStorage.setItem('coins', String(coins));
+  localStorage.setItem('weapon', currentWeapon);
+  localStorage.setItem('owned', JSON.stringify(ownedWeapons));
+  localStorage.setItem('items', JSON.stringify(ownedItems));
+  localStorage.setItem('purpuraCharges', String(purpuraCharges));
+  localStorage.setItem('purpuraBuys', String(purpuraBuys));
+  localStorage.setItem('purpuraEquipped', String(purpuraEquipped));
+  localStorage.setItem('escudoCharges', String(escudoCharges));
+  localStorage.setItem('monsterCharges', String(monsterCharges));
+  localStorage.setItem('invert', String(invert));
+  localStorage.setItem('invertScreen', String(invertScreen));
+  localStorage.setItem('equippedTitle', equippedTitle);
+  localStorage.setItem('favoriteWeapons', JSON.stringify(favoriteWeapons));
+  localStorage.setItem('sukunaOwned', String(sukunaOwned));
+  localStorage.removeItem('sukunaLevel');
+}
+
+function hidePanels() {
+  ['menu','profile','multiplayerPanel','shop','inventory','pause','devPanel'].forEach(id =>
+    document.getElementById(id).classList.add('hidden')
+  );
+}
+
+function toggleAdminEntry() {
+  const entry = document.getElementById('adminEntry');
+  entry.classList.toggle('hidden');
+  if (!entry.classList.contains('hidden')) setTimeout(() => document.getElementById('adminUnlockInput').focus(), 30);
+}
+
+function unlockAdmin() {
+  const input = document.getElementById('adminUnlockInput');
+  if (input.value.trim().toLowerCase() !== '/admin') {
+    input.value = '';
+    input.placeholder = 'Comando incorrecto';
+    return;
+  }
+  adminUnlocked = true;
+  localStorage.setItem('adminUnlocked', 'true');
+  document.getElementById('adminMenuButton').classList.remove('hidden');
+  document.getElementById('inGameAdminButton').classList.toggle('hidden', !gameRunning);
+  input.value = '';
+  input.placeholder = 'Acceso habilitado';
+  document.getElementById('profileMessage').textContent = 'Comandos habilitados en el menú y durante la partida.';
+}
+
+function openDevPanel() {
+  if (!adminUnlocked) return;
+  devPanelWasPaused = gameRunning && paused;
+  document.getElementById('pause').classList.add('hidden');
+  document.getElementById('devPanel').classList.remove('hidden');
+  setTimeout(() => document.getElementById('devInput').focus(), 50);
+  devLog('🟢 Consola iniciada. Bienvenido, dev.');
+}
+
+function closeDevPanel() {
+  document.getElementById('devPanel').classList.add('hidden');
+  if (gameRunning) {
+    paused = devPanelWasPaused;
+    document.getElementById('pause').classList.toggle('hidden', !paused);
+  }
+}
+
+function devLog(msg) {
+  const log = document.getElementById('devLog');
+  const line = document.createElement('div');
+  line.textContent = '> ' + msg;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+function runDevCommand() {
+  const input = document.getElementById('devInput');
+  const raw = input.value.trim();
+  input.value = '';
+  if (!raw) return;
+  devLog(raw);
+
+  const parts = raw.split(' ');
+  const cmd = parts[0].toLowerCase();
+  const arg = parseInt(parts[1], 10);
+
+  if (cmd === '/fase') {
+    const branch = (parts[1] || '').toLowerCase();
+    const phase = parseInt(parts[2], 10);
+    if (branch !== 'sukuna' || !Number.isInteger(phase) || phase < 1 || phase > 4) {
+      devLog('❌ Usá: /fase sukuna <1-4>'); return;
+    }
+    const phaseCombo = [0, 10, 50, 100, 500][phase];
+    const phaseFingers = [0, 1, 5, 10, 20][phase];
+    stopSukunaSkill(false);
+    sukunaOwned = true; ownedWeapons.sukuna = true; currentWeapon = 'sukuna';
+    sukunaLevel = phase; sukunaCombo = phaseCombo; sukunaFingers = phaseFingers;
+    sukunaCooldownUntil = 0; sukunaDomainBoostUntil = 0;
+    selectedMode = 'normal'; specialActiveUntil = 0;
+    safeStore(); updateWeaponCursor(); updateHUD(); updateModeUI(); renderInventory(); refreshPauseStats();
+    devLog(`✅ Sukuna equipado en fase ${phase}; contador ${phaseCombo}, dedos ${phaseFingers}/20. R activa la técnica.`);
+
+  } else if (cmd === '/kills') {
+    if (isNaN(arg) || arg < 0) { devLog('❌ Usá: /kills <número>'); return; }
+    kills += arg;
+    safeStore(); updateHUD();
+    devLog('✅ +' + arg + ' kills otorgadas. Total: ' + kills);
+
+  } else if (cmd === '/monedas') {
+    if (isNaN(arg) || arg < 0) { devLog('❌ Usá: /monedas <número>'); return; }
+    coins += arg;
+    safeStore(); updateCoins();
+    devLog('✅ +' + arg + ' monedas otorgadas. Total: ' + coins);
+
+  } else if (cmd === '/purpura') {
+    if (isNaN(arg) || arg < 0) { devLog('❌ Usá: /purpura <número>'); return; }
+    purpuraCharges = Math.min(16, purpuraCharges + arg);
+    purpuraEquipped = true;
+    ownedItems.purpura = true;
+    safeStore(); updateModeUI(); renderInventory();
+    devLog('✅ Cargas púrpura: ' + purpuraCharges + '/16');
+
+  } else if (cmd === '/reset') {
+    kills = 0; coins = 0; combo = 0; sukunaCombo = 0; sessionKills = 0;
+    sukunaOwned = false; sukunaFingers = 0; sukunaLevel = 0; sukunaCooldownUntil = 0; sukunaDomainBoostUntil = 0; stopSukunaSkill(false); clearSukunaFingerItems();
+    purpuraCharges = 0; purpuraEquipped = false; purpuraBuys = 0;
+    ownedWeapons = {pistola: true}; ownedItems = {};
+    currentWeapon = 'pistola'; invert = false; invertScreen = false;
+    equippedTitle = ''; favoriteWeapons = [];
+    probGrisMulti = 1.0; probDoradoMulti = 1.0; probRojoMulti = 1.0; probMultiplicadorMulti = 1.0;
+    safeStore(); updateCoins(); updateModeUI(); renderInventory();
+    devLog('⚠️ Progreso reseteado completamente.');
+
+  } else if (cmd === '/probabilidad') {
+    const tipo = parts[1] ? parts[1].toLowerCase() : '';
+    const factor = parseFloat(parts[2]);
+
+    if (tipo === 'n') {
+      probGrisMulti = 1.0; probDoradoMulti = 1.0; probRojoMulti = 1.0; probMultiplicadorMulti = 1.0;
+      devLog('✅ Todas las probabilidades vueltas a la normalidad (x1).');
+
+    } else if (tipo === 'gris') {
+      if (isNaN(factor)) { devLog('❌ Usá: /probabilidad gris <número>'); return; }
+      probGrisMulti = Math.max(0, factor);
+      devLog(`✅ Prob. gris → x${factor} = ${(0.02 * Math.max(0,factor) * 100).toFixed(3)}%`);
+
+    } else if (tipo === 'dorado') {
+      if (isNaN(factor)) { devLog('❌ Usá: /probabilidad dorado <número>'); return; }
+      probDoradoMulti = Math.max(0, factor);
+      devLog(`✅ Prob. dorado → x${factor} = ${(0.005 * Math.max(0,factor) * 100).toFixed(3)}%`);
+
+    } else if (tipo === 'rojo') {
+      if (isNaN(factor)) { devLog('❌ Usá: /probabilidad rojo <número>'); return; }
+      probRojoMulti = Math.max(0, factor);
+      devLog(`✅ Prob. rojo → x${factor} = ${(0.4 * Math.max(0,factor) * 100).toFixed(1)}%`);
+
+    } else if (tipo === 'multiplicador') {
+      if (isNaN(factor)) { devLog('❌ Usá: /probabilidad multiplicador <número>'); return; }
+      probMultiplicadorMulti = Math.max(0, factor);
+      devLog(`✅ Prob. objeto Multiplicador → x${probMultiplicadorMulti} = ${(Math.min(1, 0.05 * probMultiplicadorMulti) * 100).toFixed(2)}% por perro cortado con espada`);
+
+    } else if (!isNaN(parseFloat(tipo))) {
+      // sin tipo → multiplica todo
+      const f = Math.max(0, parseFloat(tipo));
+      probGrisMulti = f; probDoradoMulti = f; probRojoMulti = f; probMultiplicadorMulti = f;
+      devLog(`✅ Todas las probabilidades → x${f}`);
+
+    } else {
+      devLog('❌ Usá: /probabilidad <gris|dorado|rojo|multiplicador|N> <número>');
+    }
+
+  } else {
+    devLog('❌ Comando desconocido: ' + cmd);
+  }
+}
+
+function openMultiplayerPanel() { hidePanels(); document.getElementById('multiplayerPanel').classList.remove('hidden'); }
+function closeMultiplayerPanel() { document.getElementById('multiplayerPanel').classList.add('hidden'); document.getElementById('menu').classList.remove('hidden'); }
+function openShop() { hidePanels(); document.getElementById('shop').classList.remove('hidden'); updateCoins(); updateShopPrices(); renderInventory(); }
+function closeShop() { document.getElementById('shop').classList.add('hidden'); document.getElementById('menu').classList.remove('hidden'); }
+let inventoryReturnToMenu = false;
+function openInventory(fromMenu = false) { inventoryReturnToMenu = fromMenu; hidePanels(); document.getElementById('inventory').classList.remove('hidden'); renderInventory(); }
+function closeInventory() {
+  document.getElementById('inventory').classList.add('hidden');
+  document.getElementById(inventoryReturnToMenu ? 'menu' : 'shop').classList.remove('hidden');
+  inventoryReturnToMenu = false;
+}
+function openProfile() { hidePanels(); document.getElementById('profile').classList.remove('hidden'); renderProfile(); }
+function closeProfile() { document.getElementById('profile').classList.add('hidden'); document.getElementById('menu').classList.remove('hidden'); }
+function renderProfile() {
+  document.getElementById('profileRank').textContent = `Título desbloqueado: ${getRank(kills)} · ${kills.toLocaleString('es-AR')} perros`; 
+  const titleSelect = document.getElementById('profileTitleSelect');
+  titleSelect.innerHTML = '';
+  const selectedTitle = equippedTitle || getRank(kills);
+  rankLevels.forEach(level => {
+    const option = document.createElement('option');
+    option.value = level.name;
+    option.textContent = kills >= level.threshold ? level.name : `${level.name} — 🔒 ${level.threshold.toLocaleString('es-AR')} perros`;
+    option.disabled = kills < level.threshold;
+    option.selected = level.name === selectedTitle;
+    titleSelect.appendChild(option);
+  });
+  const weaponNames = {pistola:'Pistola', ak:'AK-47', sukuna:'Sukuna', espada:'Espada'};
+  [1,2,3].forEach(slot => {
+    const select = document.getElementById('favoriteWeapon' + slot);
+    select.innerHTML = '';
+    const empty = document.createElement('option'); empty.value = ''; empty.textContent = '— Sin elegir —'; select.appendChild(empty);
+    Object.keys(ownedWeapons).filter(w => ownedWeapons[w]).forEach(w => {
+      const option = document.createElement('option'); option.value = w; option.textContent = weaponNames[w] || w.toUpperCase(); select.appendChild(option);
+    });
+    select.value = favoriteWeapons[slot - 1] || '';
+  });
+  document.getElementById('profileMessage').textContent = '';
+}
+function saveProfile() {
+  const chosenTitle = document.getElementById('profileTitleSelect').value;
+  const unlocked = rankLevels.find(level => level.name === chosenTitle && kills >= level.threshold);
+  if (!unlocked) { document.getElementById('profileMessage').textContent = 'Ese título todavía está bloqueado.'; return; }
+  equippedTitle = chosenTitle;
+  favoriteWeapons = [];
+  [1,2,3].forEach(slot => {
+    const weapon = document.getElementById('favoriteWeapon' + slot).value;
+    if (weapon && ownedWeapons[weapon] && !favoriteWeapons.includes(weapon)) favoriteWeapons.push(weapon);
+  });
+  safeStore(); updateHUD();
+  document.getElementById('profileMessage').textContent = 'Perfil guardado.';
+}
+
+function generateRoomCode() { return Math.random().toString(36).slice(2, 8).toUpperCase(); }
+function getClientId() {
+  let id = localStorage.getItem('clientId');
+  if (!id) { id = Math.random().toString(36).slice(2, 10); localStorage.setItem('clientId', id); }
+  return id;
+}
+
+// ── FIREBASE MULTIPLAYER ─────────────────────────────────
+let fbDatabase = null;
+let fbRoomRef = null;
+let fbMyRef = null;
+let fbRivalRef = null;
+
+function initFirebase() {
+  if (fbDatabase) return;
+  const firebaseConfig = {
+    apiKey: "AIzaSyA2DybgUZlU3ssp1DnzPHKKVNxaHBkZXdM",
+    authDomain: "perro-67.firebaseapp.com",
+    databaseURL: "https://perro-67-default-rtdb.firebaseio.com",
+    projectId: "perro-67",
+    storageBucket: "perro-67.firebasestorage.app",
+    messagingSenderId: "244760956904",
+    appId: "1:244760956904:web:41bfd0e03c7a271c2a9e5d"
+  };
+  firebase.initializeApp(firebaseConfig);
+  fbDatabase = firebase.database();
+}
+
+function setupFirebaseRoom(code) {
+  initFirebase();
+  const myId = getClientId();
+  fbRoomRef = fbDatabase.ref('salas/' + code);
+  fbMyRef = fbDatabase.ref('salas/' + code + '/jugadores/' + myId);
+
+  // Escribo mi presencia
+  fbMyRef.set({ x: 0, y: 0, kills: 0, sessionKills: 0, online: true, ts: Date.now() });
+  fbMyRef.onDisconnect().remove();
+
+  // Escucho cambios en la sala
+  fbRoomRef.child('jugadores').on('value', snap => {
+    const data = snap.val();
+    if (!data) return;
+    const otherPlayers = Object.entries(data).filter(([id]) => id !== myId);
+    if (otherPlayers.length > 0) {
+      hasPeer = true;
+      lastPeerSeenAt = Date.now();
+      document.getElementById('rivalStatus').textContent = '🟢 Rival: conectado';
+      const [, rival] = otherPlayers[0];
+      remoteAim.x = rival.x || 0;
+      remoteAim.y = rival.y || 0;
+      remoteAim.kills = rival.kills || 0;
+      remoteAim.sessionKills = rival.sessionKills || 0;
+      remoteAim.seen = true;
+      document.getElementById('enemyKills').textContent = rival.kills || 0;
+    } else {
+      hasPeer = false;
+      document.getElementById('rivalStatus').textContent = '🟡 Rival: esperando...';
+    }
+  });
+}
+
+function closeFirebaseRoom() {
+  if (fbMyRef) { fbMyRef.remove(); fbMyRef = null; }
+  if (fbRoomRef) { fbRoomRef.child('jugadores').off(); fbRoomRef = null; }
+  fbRivalRef = null;
+  hasPeer = false;
+}
+
+function sendFirebaseState() {
+  if (multiplayer && fbMyRef) {
+    fbMyRef.update({ x: aimX, y: aimY, kills, sessionKills, ts: Date.now() });
+  }
+}
+// ─────────────────────────────────────────────────────────
+
+function createRoom() { currentRoomCode = generateRoomCode(); startMultiplayerGame(); }
+function joinRoom() {
+  const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+  if (!code) return;
+  currentRoomCode = code;
+  startMultiplayerGame();
+}
+
+function closeRoomChannel() { closeFirebaseRoom(); }
+
+function startGame() {
+  multiplayer = false; currentRoomCode = '';
+  closeRoomChannel(); clearInterval(presenceTimer); presenceTimer = null;
+  hidePanels();
+  document.body.classList.add('playing');
+  document.getElementById('ui').classList.remove('hidden');
+  document.getElementById('enemyKillsWrap').classList.add('hidden');
+  document.getElementById('roomCode').textContent = 'Sala: -';
+  gameRunning = true; paused = false;
+  document.getElementById('inGameAdminButton').classList.toggle('hidden', !adminUnlocked);
+  swordWaveActive = false; updateWeaponCursor();
+  swordPowerCollectedThisGame = false;
+  clearSukunaFingerItems(); stopSukunaSkill(false);
+  sukunaFingers = 0; sukunaLevel = sukunaOwned ? 1 : 0; sukunaCombo = 0;
+  gameStartTime = Date.now(); roomTimer = 0;
+  combo = 0; sukunaCombo = 0; sessionKills = 0; hasPeer = false; selectedMode = 'normal';
+  purpuraUsedThisGame = 0; escudoUsedThisGame = false; monsterActiveUntil = 0;
+  initEnemies();
+  spawnNormalEnemy();
+  updateModeUI();
+  if (!loopStarted) { loopStarted = true; requestAnimationFrame(loop); }
+}
+
+function startMultiplayerGame() {
+  multiplayer = true; hidePanels();
+  document.body.classList.add('playing');
+  document.getElementById('ui').classList.remove('hidden');
+  document.getElementById('enemyKillsWrap').classList.remove('hidden');
+  document.getElementById('roomCode').textContent = 'Sala: ' + currentRoomCode;
+  document.getElementById('rivalStatus').textContent = '🟡 Rival: conectando...';
+  setupFirebaseRoom(currentRoomCode);
+  gameRunning = true; paused = false;
+  document.getElementById('inGameAdminButton').classList.toggle('hidden', !adminUnlocked);
+  swordWaveActive = false; updateWeaponCursor();
+  swordPowerCollectedThisGame = false;
+  clearSukunaFingerItems(); stopSukunaSkill(false);
+  sukunaFingers = 0; sukunaLevel = sukunaOwned ? 1 : 0; sukunaCombo = 0;
+  gameStartTime = Date.now(); roomTimer = 0;
+  combo = 0; sukunaCombo = 0; sessionKills = 0; hasPeer = false; selectedMode = 'normal';
+  purpuraUsedThisGame = 0; escudoUsedThisGame = false; monsterActiveUntil = 0;
+  initEnemies();
+  spawnNormalEnemy();
+  updateModeUI();
+  if (!loopStarted) { loopStarted = true; requestAnimationFrame(loop); }
+}
+
+function updateCoins() {
+  const ct = document.getElementById('coinsText'), c = document.getElementById('coins');
+  const mc = document.getElementById('menuCoins');
+  if (ct) ct.textContent = '💰 Monedas: ' + coins;
+  if (c) c.textContent = coins;
+  if (mc) mc.textContent = coins;
+  safeStore();
+}
+
+function updateModeUI() {
+  const mt = document.getElementById('modeText');
+  if (!mt) return;
+  const modeLabel = selectedMode === 'purpura' ? '🟣 Modo Púrpura' : '⚪ Modo Normal';
+  const usesLabel = purpuraEquipped ? ` | Usos: ${purpuraCharges}/16` : '';
+  const cd = selectedMode === 'purpura' && Date.now() < specialCooldownUntil
+    ? ` | CD: ${Math.ceil((specialCooldownUntil - Date.now()) / 1000)}s` : '';
+  mt.textContent = modeLabel + usesLabel + cd;
+}
+
+function renderInventory() {
+  const div = document.getElementById('invList');
+  if (!div) return;
+  div.innerHTML = '';
+
+  for (const w in ownedWeapons) {
+    if (ownedWeapons[w]) {
+      const b = document.createElement('button');
+      const weaponLabel = w === 'sukuna' ? 'SUKUNA' : w === 'espada' ? 'ESPADA' : w.toUpperCase();
+      b.textContent = (currentWeapon === w ? '✅ Equipado: ' : 'Equipar ') + weaponLabel;
+      b.style.background = currentWeapon === w ? '#1a3a1a' : '';
+    b.onclick = () => {
+        currentWeapon = w;
+        if (w === 'espada' || w === 'sukuna') { selectedMode = 'normal'; specialActiveUntil = 0; }
+        updateWeaponCursor(); safeStore(); updateHUD(); renderInventory();
+      };
+      div.appendChild(b);
+    }
+  }
+
+  if (ownedItems.invert) {
+    const b = document.createElement('button');
+    b.textContent = invert ? '✅ Inversión activada' : 'Equipar inversión';
+    b.onclick = () => { invert = !invert; safeStore(); renderInventory(); };
+    div.appendChild(b);
+  }
+
+  if (ownedItems.invertScreen) {
+    const b = document.createElement('button');
+    b.textContent = invertScreen ? '✅ Pantalla invertida' : 'Equipar pantalla invertida';
+    b.onclick = () => { invertScreen = !invertScreen; safeStore(); renderInventory(); };
+    div.appendChild(b);
+  }
+
+  const p = document.createElement('button');
+  p.textContent = currentWeapon === 'sukuna' ? '🚫 Púrpura incompatible con Sukuna' : (purpuraEquipped ? '✅ Desequipar ' : 'Equipar ') + `Púrpura (${purpuraCharges}/16)`;
+  p.onclick = () => {
+    if (currentWeapon === 'sukuna') { alert('Púrpura y Sukuna no son compatibles. Equipá otra arma para usarlo.'); return; }
+    if (purpuraCharges <= 0) return;
+    purpuraEquipped = !purpuraEquipped;
+    if (!purpuraEquipped && selectedMode === 'purpura') selectedMode = 'normal';
+    safeStore(); updateModeUI(); renderInventory();
+  };
+  p.disabled = purpuraCharges <= 0 && currentWeapon !== 'sukuna';
+  div.appendChild(p);
+
+  const s = document.createElement('button');
+  s.textContent = escudoCharges > 0 ? `🛡️ Escudo de Combo — ${escudoCharges} carga${escudoCharges !== 1 ? 's' : ''}` : '🛡️ Escudo de Combo — sin cargas';
+  s.style.background = escudoCharges > 0 ? '#1a2a3a' : '';
+  s.style.color = escudoCharges > 0 ? '#88ccff' : '#555';
+  s.disabled = true;
+  div.appendChild(s);
+
+  const m = document.createElement('button');
+  const monsterActivo = Date.now() < monsterActiveUntil;
+  m.textContent = monsterActivo
+    ? `🥤 Monster Blanca — ACTIVO ${Math.ceil((monsterActiveUntil - Date.now()) / 1000)}s`
+    : monsterCharges > 0
+      ? `🥤 Monster Blanca — ${monsterCharges} unidad${monsterCharges !== 1 ? 'es' : ''} (tecla 3)`
+      : '🥤 Monster Blanca — sin unidades';
+  m.style.background = monsterActivo ? '#1a3a1a' : monsterCharges > 0 ? '#1a2a1a' : '';
+  m.style.color = monsterActivo ? '#44ff88' : monsterCharges > 0 ? '#88ff88' : '#555';
+  m.disabled = true;
+  div.appendChild(m);
+
+}
+
+function updateShopPrices() {
+  const precio = purpuraBuys >= 5 ? 3000 : 1500;
+  const restante = Math.max(0, 5 - purpuraBuys);
+  const btn = document.querySelector('#shop button[onclick="buyPurpura()"]');
+  if (btn) {
+    btn.textContent = restante > 0
+      ? `🟣 Púrpura (${precio}) — sube a 3000 en ${restante} compra${restante !== 1 ? 's' : ''}`
+      : `🟣 Púrpura (${precio})`;
+  }
+}
+
+function buyWeapon(w) {
+  const prices = {ak: 1500, sukuna: 6000, espada: 2500};
+  if (ownedWeapons[w]) { alert('Ya tenés esta arma.'); return; }
+  if (coins >= prices[w]) {
+    coins -= prices[w]; ownedWeapons[w] = true;
+    if (w === 'sukuna') { sukunaOwned = true; if (sukunaLevel === 0) sukunaLevel = 1; }
+    safeStore(); updateCoins(); renderInventory();
+  }
+  else { alert('No tenés suficientes monedas.'); }
+}
+
+function buyPurpura() {
+  const precio = purpuraBuys >= 5 ? 3000 : 1500;
+  if (coins < precio) { alert('No tenés suficientes monedas. Precio actual: ' + precio); return; }
+  if (purpuraCharges >= 16) { alert('Ya tenés el máximo de cargas.'); return; }
+  coins -= precio; purpuraCharges++; purpuraBuys++; ownedItems.purpura = true; purpuraEquipped = currentWeapon !== 'sukuna';
+  safeStore(); updateCoins(); updateModeUI(); renderInventory();
+}
+
+function buyInvert() {
+  if (ownedItems.invert) { alert('Ya lo tenés.'); return; }
+  if (coins >= 2500) { coins -= 2500; ownedItems.invert = true; safeStore(); updateCoins(); renderInventory(); }
+  else { alert('No tenés suficientes monedas.'); }
+}
+
+function buyInvertScreen() {
+  if (ownedItems.invertScreen) { alert('Ya lo tenés.'); return; }
+  if (coins >= 2500) { coins -= 2500; ownedItems.invertScreen = true; safeStore(); updateCoins(); renderInventory(); }
+  else { alert('No tenés suficientes monedas.'); }
+}
+
+function buyEscudo() {
+  if (coins < 1500) { alert('No tenés suficientes monedas. Necesitás 1500.'); return; }
+  coins -= 1500;
+  escudoCharges += 3;
+  safeStore(); updateCoins(); renderInventory();
+  alert('🛡️ ¡Escudo de Combo comprado! Tenés ' + escudoCharges + ' cargas.');
+}
+
+function buyMonster() {
+  if (coins < 5000) { alert('No tenés suficientes monedas. Necesitás 5000.'); return; }
+  coins -= 5000;
+  monsterCharges++;
+  safeStore(); updateCoins(); renderInventory();
+  alert('🥤 ¡Monster Blanca comprada! Tenés ' + monsterCharges + ' unidades. Usala con la tecla 3.');
+}
+
+function clearSukunaFingerItems() {
+  sukunaFingerItems.forEach(item => { clearTimeout(item._expireTimer); item.remove(); });
+  sukunaFingerItems = [];
+}
+
+function maybeDropSukunaFinger(x, y) {
+  if (currentWeapon !== 'sukuna' || !sukunaOwned || sukunaFingers + sukunaFingerItems.length >= 20 || Math.random() >= 0.10) return;
+  const item = document.createElement('div');
+  item.className = 'sukunaFinger';
+  item.title = 'Dedo de Sukuna — clic para recoger';
+  item.setAttribute('aria-label', 'Dedo de Sukuna');
+  item.style.left = (x - 24) + 'px'; item.style.top = (y - 32) + 'px';
+  item.innerHTML = `<svg viewBox="0 0 60 80" aria-hidden="true"><defs><linearGradient id="fingerGrad" x1="0" x2="1"><stop stop-color="#6d28d9"/><stop offset=".48" stop-color="#c084fc"/><stop offset="1" stop-color="#581c87"/></linearGradient></defs><path d="M20 72 Q12 66 16 56 L19 39 Q20 34 24 34 Q28 34 28 40 L29 20 Q29 14 34 14 Q39 14 39 20 L39 39 L42 17 Q43 11 48 12 Q53 13 52 19 L49 42 L53 33 Q56 28 60 31 Q64 34 60 41 L53 61 Q49 74 38 77 L27 78 Z" transform="translate(-8 0)" fill="url(#fingerGrad)" stroke="#2e104f" stroke-width="3"/><path d="M35 16 Q38 5 45 5 Q49 9 45 18 L40 27 Z" fill="#e8d7ff" stroke="#673ab7" stroke-width="2"/><path d="M12 58 Q25 51 50 57" fill="none" stroke="#e9d5ff" stroke-opacity=".55" stroke-width="2"/></svg>`;
+  item.onclick = e => {
+    e.stopPropagation();
+    if (sukunaFingers >= 20) return;
+    sukunaFingers = Math.min(20, sukunaFingers + 1);
+    item.remove(); clearTimeout(item._expireTimer);
+    sukunaFingerItems = sukunaFingerItems.filter(x => x !== item);
+    safeStore(); renderInventory(); refreshPauseStats();
+    showDamageText(`🩸 Dedo de Sukuna ${sukunaFingers}/20`, '#d8a8ff');
+  };
+  enemyLayer.appendChild(item); sukunaFingerItems.push(item);
+  item._expireTimer = setTimeout(() => { item.remove(); sukunaFingerItems = sukunaFingerItems.filter(x => x !== item); }, 15000);
+  showDamageText('🩸 ¡Apareció un dedo de Sukuna!', '#d8a8ff');
+}
+
+function evolveSukuna() {
+  if (currentWeapon !== 'sukuna' || !sukunaOwned || sukunaLevel < 1 || sukunaLevel >= 4) return;
+  const requirements = {1:{combo:50,fingers:5},2:{combo:100,fingers:10},3:{combo:500,fingers:20}};
+  const req = requirements[sukunaLevel];
+  if (sukunaCombo < req.combo || sukunaFingers < req.fingers) {
+    showDamageText(`Evolución bloqueada: requiere ${req.combo} combo y ${req.fingers} dedos`, '#ffbb66');
+    return;
+  }
+  sukunaLevel++;
+  safeStore(); renderInventory(); refreshPauseStats();
+  showDamageText(`🩸 Sukuna evolucionó: ${sukunaSkillName(sukunaLevel)}`, '#d8a8ff');
+}
+
+function stopSukunaSkill(startCooldown = true) {
+  const wasActive = sukunaActiveUntil > Date.now();
+  const stoppedLevel = sukunaActiveLevel;
+  sukunaActiveUntil = 0; sukunaActiveLevel = 0;
+  if (sukunaTickTimer) { clearInterval(sukunaTickTimer); sukunaTickTimer = null; }
+  if (startCooldown && wasActive) sukunaCooldownUntil = Math.max(sukunaCooldownUntil, Date.now() + (stoppedLevel === 4 ? 60000 : 30000));
+  if (wasActive && startCooldown) showDamageText('Sukuna: técnica interrumpida', '#d8a8ff');
+  updateWeaponCursor();
+}
+
+function activateSukuna() {
+  if (!gameRunning || paused || currentWeapon !== 'sukuna' || !sukunaOwned || sukunaLevel < 1) return false;
+  const now = Date.now();
+  if (sukunaActiveUntil > now) return true;
+  if (now < sukunaCooldownUntil) { showDamageText(`Sukuna listo en ${Math.ceil((sukunaCooldownUntil-now)/1000)}s`, '#ffcc66'); return true; }
+  if (sukunaLevel === 1 && (sukunaCombo < 10 || sukunaFingers < 1)) {
+    showDamageText('Corte requiere 10 de combo y 1 dedo', '#ffbb66'); return true;
+  }
+  sukunaActiveLevel = sukunaLevel;
+  sukunaActiveUntil = now + 10000;
+  sukunaCooldownUntil = now + 10000 + (sukunaActiveLevel === 4 ? 60000 : 30000);
+  const level = sukunaActiveLevel;
+  updateWeaponCursor();
+  showDamageText(['','🩸 ¡Corte de Sukuna! · 10 s','🩸 Disparo automático · 10 s','🔥 ¡Fuga! · 10 s','🩸 ¡Cortes rápidos x2! · 10 s'][level], '#d8a8ff');
+  if (level === 2 || level === 3 || level === 4) {
+    const delay = level === 2 ? 350 : level === 3 ? 390 : 110;
+    const tick = () => {
+      if (!gameRunning || Date.now() >= sukunaActiveUntil || sukunaActiveLevel !== level) {
+        if (sukunaTickTimer) { clearInterval(sukunaTickTimer); sukunaTickTimer = null; }
+        return;
+      }
+      if (paused) return;
+      let target = enemies.findIndex(e => e.alive && !e.red && !e.golden && !e.grey);
+      if (target < 0) { spawnNormalEnemy(); target = enemies.findIndex(e => e.alive && !e.red && !e.golden && !e.grey); }
+      if (target >= 0) { sukunaCutUntil = Date.now() + 180; showSukunaCut(enemies[target].x, enemies[target].y); killEnemy(target, false); }
+    };
+    tick(); sukunaTickTimer = setInterval(tick, delay);
+  }
+  return true;
+}
+
+function sukunaCanHitRed() { return currentWeapon === 'sukuna' && Date.now() < sukunaActiveUntil && sukunaActiveLevel === 1; }
+
+function drawSukunaArm(ctx, anchorX, anchorY) {
+  const extending = Date.now() < sukunaCutUntil;
+  const aim = Math.atan2(aimY - anchorY, aimX - anchorX);
+  const shoulder = {x:anchorX + 260, y:anchorY + 230};
+  const elbow = extending ? {x:anchorX + Math.cos(aim + 0.9)*150, y:anchorY + Math.sin(aim + 0.9)*150} : {x:anchorX + 185, y:anchorY - 10};
+  const wrist = extending ? {x:anchorX + Math.cos(aim)*185, y:anchorY + Math.sin(aim)*185} : {x:anchorX + 35, y:anchorY + 15};
+  ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.strokeStyle='#282039'; ctx.lineWidth=45; ctx.beginPath(); ctx.moveTo(shoulder.x,shoulder.y); ctx.lineTo(elbow.x,elbow.y); ctx.lineTo(wrist.x,wrist.y); ctx.stroke();
+  ctx.strokeStyle='#b985a0'; ctx.lineWidth=34; ctx.beginPath(); ctx.moveTo(elbow.x,elbow.y); ctx.lineTo(wrist.x,wrist.y); ctx.stroke();
+  ctx.fillStyle='#c995b5'; ctx.beginPath(); ctx.ellipse(wrist.x,wrist.y,17,13,aim,0,Math.PI*2); ctx.fill();
+  const fingerAngle = extending ? aim : -Math.PI/2;
+  for (let i=0;i<2;i++) { const a=fingerAngle+(i?0.12:-0.12); ctx.strokeStyle='#e2b6d1';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(wrist.x,wrist.y);ctx.lineTo(wrist.x+Math.cos(a)*40,wrist.y+Math.sin(a)*40);ctx.stroke(); }
+  ctx.strokeStyle='#d19bb8';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(wrist.x-5,wrist.y+2);ctx.lineTo(wrist.x-19,wrist.y+10);ctx.stroke();
+  ctx.restore();
+}
+
+function showSukunaCut(x, y) {
+  const cut = document.createElement('div'); cut.className='sukunaCut';
+  const angle = Math.atan2(y-(canvas.height-62), x-(canvas.width/2));
+  cut.style.left=(x-70)+'px'; cut.style.top=(y-2)+'px'; cut.style.rotate=angle+'rad';
+  document.body.appendChild(cut); setTimeout(()=>cut.remove(),240);
+}
+
+function pauseGame() {
+  paused = true;
+  refreshPauseStats();
+  document.getElementById('pause').classList.remove('hidden');
+  enemies.forEach(e => { if (e.el) e.el.style.display = 'none'; });
+}
+function resumeGame() {
+  paused = false;
+  document.getElementById('pause').classList.add('hidden');
+}
+function goToMenu() {
+  gameRunning = false; paused = false;
+  document.getElementById('inGameAdminButton').classList.add('hidden');
+  sukunaFingers = 0; sukunaLevel = sukunaOwned ? 1 : 0; sukunaCombo = 0;
+  stopSukunaSkill(false); clearSukunaFingerItems(); sukunaDomainBoostUntil = 0;
+  document.body.classList.remove('playing');
+  swordWaveActive = false; lastSwordPoint = null; updateWeaponCursor();
+  weaponCtx.clearRect(0, 0, weaponCanvas.width, weaponCanvas.height);
+  swordComboUntil = 0; combo = 0; sukunaCombo = 0;
+  if (swordPowerItem) { clearTimeout(swordPowerItem._expireTimer); swordPowerItem.remove(); swordPowerItem = null; }
+  if (akBurstTimer) { clearInterval(akBurstTimer); akBurstTimer = null; }
+  akBurstActiveUntil = 0;
+  dominioActivo = false;
+  dominioEnemigos.forEach(el => { if (el._moverTimer) clearTimeout(el._moverTimer); el.remove(); });
+  dominioEnemigos = [];
+  const dominioOverlay = document.getElementById('dominioOverlay');
+  if (dominioOverlay) dominioOverlay.style.display = 'none';
+  clearInterval(presenceTimer); presenceTimer = null;
+  closeRoomChannel();
+  enemies.forEach(e => { if (e.el) e.el.style.display = 'none'; });
+  document.getElementById('pause').classList.add('hidden');
+  document.getElementById('ui').classList.add('hidden');
+  document.getElementById('menu').classList.remove('hidden');
+  document.getElementById('roomCode').textContent = 'Sala: -';
+  document.getElementById('menuCoins').textContent = coins;
+  safeStore();
+}
+
+function sukunaSkillName(level) {
+  return ['Sin desbloquear','Corte','Disparo automático','Fuga','Cortes automáticos'][level] || 'Sin desbloquear';
+}
+
+function refreshPauseStats() {
+  const box = document.getElementById('pauseStats');
+  if (!box) return;
+  const level = getRank(kills);
+  let skill = sukunaOwned ? `${sukunaSkillName(sukunaLevel)} · ${sukunaFingers}/20 dedos` : 'Sukuna sin comprar';
+  if (sukunaOwned && sukunaLevel < 4) {
+    const req = [{combo:0,fingers:0},{combo:50,fingers:5},{combo:100,fingers:10},{combo:500,fingers:20}][sukunaLevel];
+    skill += `<br>Evolución con W: ${req.combo} cortes de Sukuna y ${req.fingers} dedos${sukunaCombo >= req.combo && sukunaFingers >= req.fingers ? ' ✅ disponible' : ' 🔒'}`;
+  }
+  const skillDetails = !sukunaOwned ? 'Comprá Sukuna en la tienda por 6.000 monedas.' : [
+    'R: Corte durante 10 s; requiere 10 de combo y 1 dedo, permite cortar rojos y ganar oro.',
+    'R: disparos automáticos a perros normales durante 10 s; enfriamiento de 30 s.',
+    'R: Fuga, cortes automáticos a ritmo 10% más lento durante 10 s; sin multiplicador.',
+    'R: cortes automáticos rápidos durante 10 s; x2 combo y oro; enfriamiento de 1 min.'
+  ][sukunaLevel - 1];
+  const active = Date.now() < sukunaActiveUntil ? `${sukunaSkillName(sukunaActiveLevel)} activa · ${Math.ceil((sukunaActiveUntil-Date.now())/1000)} s` : 'ninguna';
+  const cooldown = Date.now() < sukunaCooldownUntil ? `${Math.ceil((sukunaCooldownUntil-Date.now())/1000)} s` : 'lista';
+  box.innerHTML = `<strong>Perfil de partida</strong><br>Título: ${level}${equippedTitle ? ` · equipado: ${equippedTitle}` : ''}<br>Perros eliminados: ${kills.toLocaleString('es-AR')} totales · ${sessionKills} en esta partida<br>Oro: ${coins}<br>Combo normal: ${combo}<br>Cortes de Sukuna: ${sukunaCombo}<br>Arma: ${currentWeapon.toUpperCase()}<br><strong>Habilidades:</strong> ${skill}<br>${skillDetails}<br>Habilidad activa: ${active} · Enfriamiento Sukuna: ${cooldown}<br>Púrpura: ${purpuraCharges} · Escudos: ${escudoCharges} · Monster: ${monsterCharges}`;
+}
+
+function clearEnemies() {
+  enemies.forEach(e => { e.alive = false; e.red = false; e.golden = false; e.grey = false; e.spawnAt = 0; });
+}
+
+function spawnEnemyAt(index, red, golden = false, grey = false) {
+  const spots = getSpots();
+  const e = enemies[index];
+  e.x = spots[index].x; e.y = spots[index].y;
+  e.red = !!red; e.golden = !!golden; e.grey = !!grey; e.alive = true; e.spawnAt = Date.now();
+  return e;
+}
+
+function spawnNormalEnemy() {
+  clearEnemies();
+  const free = enemies.filter(e => !e.alive);
+  if (free.length === 0) return;
+
+  const monsterActiva = Date.now() < monsterActiveUntil;
+  const probDorado = Math.max(0, (monsterActiva ? 0.025 : 0.005) * probDoradoMulti);
+  const probGris   = currentWeapon === 'espada' ? 0 : Math.max(0, 0.02 * probGrisMulti);
+  const probRojo   = Math.max(0, Math.min(1, (monsterActiva ? 0.15 : 0.4) * probRojoMulti));
+
+  // Rolls independientes — el gris y dorado no compiten entre sí
+  if (Math.random() < probGris) {
+    const pick = free[Math.floor(Math.random() * free.length)];
+    spawnEnemyAt(pick.spot, false, false, true);
+    return;
+  }
+  if (Math.random() < probDorado) {
+    const pick = free[Math.floor(Math.random() * free.length)];
+    spawnEnemyAt(pick.spot, false, true, false);
+    return;
+  }
+
+  const normalPick = free[Math.floor(Math.random() * free.length)];
+  spawnEnemyAt(normalPick.spot, false);
+  if (Math.random() < probRojo) {
+    const remaining = enemies.filter(e => !e.alive && e.spot !== normalPick.spot);
+    if (remaining.length) {
+      const redPick = remaining[Math.floor(Math.random() * remaining.length)];
+      spawnEnemyAt(redPick.spot, true);
+    }
+  }
+}
+
+function drawRoom() {
+  const w = canvas.width, h = canvas.height;
+  // Fondo sala
+  ctx.fillStyle = '#d4c9b0'; ctx.fillRect(0, 0, w, h * 0.55);
+  ctx.fillStyle = '#8b6f47'; ctx.fillRect(0, h * 0.55, w, h * 0.45);
+  // Pared de fondo con textura
+  ctx.fillStyle = '#c8bda4'; ctx.fillRect(0, 0, w, h * 0.52);
+  // Sombra de suelo
+  const grad = ctx.createLinearGradient(0, h*0.5, 0, h*0.6);
+  grad.addColorStop(0, 'rgba(0,0,0,0.3)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad; ctx.fillRect(0, h*0.5, w, h*0.1);
+
+  // Mesa izquierda
+  ctx.fillStyle = '#7a5230'; ctx.fillRect(w*0.18, h*0.45, w*0.15, h*0.1);
+  ctx.fillStyle = '#5c3e22';
+  ctx.fillRect(w*0.19, h*0.55, w*0.018, h*0.08);
+  ctx.fillRect(w*0.31, h*0.55, w*0.018, h*0.08);
+
+  // Estante con libros de colores
+  ctx.fillStyle = '#6b4226'; ctx.fillRect(w*0.48, h*0.22, w*0.1, h*0.32);
+  const bookColors = ['#c0392b','#27ae60','#2980b9','#f39c12','#8e44ad','#e74c3c','#16a085'];
+  for (let i = 0; i < 7; i++) {
+    ctx.fillStyle = bookColors[i];
+    ctx.fillRect(w*0.485 + i*(w*0.013), h*0.26, w*0.011, h*0.07);
+    ctx.fillRect(w*0.485 + i*(w*0.013), h*0.35, w*0.011, h*0.07);
+    ctx.fillRect(w*0.485 + i*(w*0.013), h*0.44, w*0.011, h*0.06);
+  }
+
+  // Ventana
+  ctx.fillStyle = '#87ceeb'; ctx.fillRect(w*0.70, h*0.12, w*0.15, h*0.18);
+  ctx.strokeStyle = '#8a7560'; ctx.lineWidth = 4;
+  ctx.strokeRect(w*0.70, h*0.12, w*0.15, h*0.18);
+  ctx.strokeStyle = '#8a7560'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(w*0.775, h*0.12); ctx.lineTo(w*0.775, h*0.30); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(w*0.70, h*0.21); ctx.lineTo(w*0.85, h*0.21); ctx.stroke();
+  // Luz de ventana
+  const lightGrad = ctx.createRadialGradient(w*0.775, h*0.35, 0, w*0.775, h*0.35, w*0.15);
+  lightGrad.addColorStop(0, 'rgba(255,255,200,0.18)'); lightGrad.addColorStop(1, 'rgba(255,255,200,0)');
+  ctx.fillStyle = lightGrad; ctx.fillRect(w*0.65, h*0.28, w*0.25, h*0.35);
+
+  // Caja/barricada derecha
+  ctx.fillStyle = '#c0392b'; ctx.fillRect(w*0.86, h*0.38, w*0.12, h*0.12);
+  ctx.fillStyle = '#922b21'; ctx.fillRect(w*0.86, h*0.38, w*0.12, h*0.025);
+  ctx.strokeStyle = '#7b241c'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(w*0.86, h*0.395); ctx.lineTo(w*0.98, h*0.395); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(w*0.92, h*0.38); ctx.lineTo(w*0.92, h*0.50); ctx.stroke();
+}
+
+let shootAnim = 0; // 0 = en reposo, >0 = animando disparo
+
+function drawFirstPersonArms(ctx, anchorX, anchorY, aimAngle, scale) {
+  const dx = Math.cos(aimAngle), dy = Math.sin(aimAngle);
+  const px = -dy, py = dx;
+  for (const side of [-1, 1]) {
+    const sx = anchorX - dx * 155 + px * side * 150;
+    const sy = anchorY - dy * 155 + py * side * 150;
+    const ex = anchorX - dx * 45 + px * side * 68;
+    const ey = anchorY - dy * 45 + py * side * 68;
+    const hx = anchorX - dx * 5 + px * side * 19;
+    const hy = anchorY - dy * 5 + py * side * 19;
+    ctx.save();
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#17191c'; ctx.lineWidth = 57 * scale;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.lineTo(hx, hy); ctx.stroke();
+    ctx.strokeStyle = side < 0 ? '#35434a' : '#465158'; ctx.lineWidth = 49 * scale;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.strokeStyle = '#252b2e'; ctx.lineWidth = 37 * scale;
+    ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(hx, hy); ctx.stroke();
+    ctx.strokeStyle = '#c18d6c'; ctx.lineWidth = 28 * scale;
+    ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(hx, hy); ctx.stroke();
+    ctx.strokeStyle = '#dda887'; ctx.lineWidth = 6 * scale;
+    ctx.beginPath(); ctx.moveTo(ex + px * side * 5, ey + py * side * 5); ctx.lineTo(hx + px * side * 5, hy + py * side * 5); ctx.stroke();
+    ctx.fillStyle = '#bd8767'; ctx.beginPath(); ctx.ellipse(hx, hy, 15 * scale, 11 * scale, aimAngle, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawWeapon() {
+  const ctx = weaponCtx;
+  ctx.clearRect(0, 0, weaponCanvas.width, weaponCanvas.height);
+  if (!gameRunning || paused) return;
+  const anchorX = canvas.width / 2;
+  const anchorY = canvas.height - 62;
+  if (currentWeapon === 'sukuna' && sukunaOwned) { drawSukunaArm(ctx, anchorX, anchorY); return; }
+  if (currentWeapon === 'espada') return;
+  const aimAngle = Math.atan2(aimY - anchorY, aimX - anchorX);
+  const viewScale = Math.max(0.82, Math.min(1.18, canvas.width / 1200));
+  const recoil = shootAnim > 0 ? Math.sin(shootAnim * Math.PI) * 14 : 0;
+  if (shootAnim > 0) shootAnim = Math.max(0, shootAnim - 0.12);
+
+  if (currentWeapon === 'pistola' || currentWeapon === 'ak') drawFirstPersonArms(ctx, anchorX, anchorY, aimAngle, viewScale);
+  ctx.save();
+  ctx.translate(anchorX, anchorY);
+  ctx.rotate(aimAngle);
+  ctx.scale(viewScale, viewScale);
+  const bX = 0;
+  const Y = recoil;
+
+  // ── PÚRPURA ──────────────────────────────────────────────
+  if (selectedMode === 'purpura') {
+    // Orbe exterior pulsante
+    ctx.shadowColor = '#b44aff'; ctx.shadowBlur = 30 + recoil * 2;
+    ctx.fillStyle = '#5a0fa8';
+    ctx.beginPath(); ctx.arc(bX, Y + 10, 38, 0, Math.PI * 2); ctx.fill();
+    // Orbe interior brillante
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#9b30e8';
+    ctx.beginPath(); ctx.arc(bX, Y + 10, 28, 0, Math.PI * 2); ctx.fill();
+    // Núcleo
+    ctx.fillStyle = '#ddb0ff';
+    ctx.beginPath(); ctx.arc(bX - 6, Y + 2, 11, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(bX - 9, Y - 1, 4, 0, Math.PI * 2); ctx.fill();
+    // Destellos
+    ctx.strokeStyle = '#cc88ff'; ctx.lineWidth = 2;
+    for (let i = 0; i < 6; i++) {
+      const ang = (i / 6) * Math.PI * 2 + shootAnim;
+      const r1 = 30, r2 = 42;
+      ctx.beginPath();
+      ctx.moveTo(bX + Math.cos(ang)*r1, Y+10 + Math.sin(ang)*r1);
+      ctx.lineTo(bX + Math.cos(ang)*r2, Y+10 + Math.sin(ang)*r2);
+      ctx.stroke();
+    }
+    // Flash de disparo
+    if (recoil > 4) {
+      ctx.fillStyle = 'rgba(180,74,255,0.35)';
+      ctx.beginPath(); ctx.arc(bX, Y + 10, 55, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore(); return;
+  }
+
+  // ── BAZUCA ───────────────────────────────────────────────
+  if (currentWeapon === 'bazuca') {
+    // Mano derecha
+    ctx.fillStyle = '#c8a07a';
+    ctx.beginPath(); ctx.ellipse(bX + 20, Y + 38, 18, 13, -0.2, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#b08060';
+    ctx.fillRect(bX + 10, Y + 32, 20, 10);
+
+    // Cuerpo principal del tubo
+    ctx.fillStyle = '#3a3a3a';
+    ctx.beginPath();
+    ctx.roundRect(bX - 90, Y - 8, 170, 22, 10);
+    ctx.fill();
+    // Detalles metálicos del tubo
+    ctx.fillStyle = '#555';
+    ctx.fillRect(bX - 85, Y - 4, 20, 14);
+    ctx.fillRect(bX + 30, Y - 4, 12, 14);
+    ctx.fillStyle = '#666';
+    ctx.fillRect(bX - 10, Y - 2, 40, 10);
+    // Boca del cañón (círculo)
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath(); ctx.arc(bX + 80, Y + 3, 13, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#555'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(bX + 80, Y + 3, 13, 0, Math.PI*2); ctx.stroke();
+    // Interior del cañón
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(bX + 80, Y + 3, 7, 0, Math.PI*2); ctx.fill();
+    // Mira superior
+    ctx.fillStyle = '#888';
+    ctx.fillRect(bX, Y - 16, 5, 8);
+    ctx.fillRect(bX - 8, Y - 18, 22, 4);
+    // Agarre
+    ctx.fillStyle = '#2a2a2a';
+    ctx.beginPath(); ctx.roundRect(bX - 5, Y + 14, 14, 26, 4); ctx.fill();
+    // Flash de disparo
+    if (recoil > 4) {
+      ctx.fillStyle = 'rgba(255,140,0,0.6)';
+      ctx.beginPath(); ctx.arc(bX + 80, Y + 3, 22, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,220,0,0.4)';
+      ctx.beginPath(); ctx.arc(bX + 80, Y + 3, 30, 0, Math.PI*2); ctx.fill();
+    }
+
+  // ── AK-47 ────────────────────────────────────────────────
+  } else if (currentWeapon === 'ak') {
+    // Mano derecha
+    ctx.fillStyle = '#c8a07a';
+    ctx.beginPath(); ctx.ellipse(bX + 10, Y + 32, 16, 11, 0.1, 0, Math.PI*2); ctx.fill();
+
+    // Culata de madera
+    ctx.fillStyle = '#8b4513';
+    ctx.beginPath(); ctx.roundRect(bX - 80, Y - 6, 38, 18, 3); ctx.fill();
+    ctx.fillStyle = '#a0522d';
+    ctx.fillRect(bX - 78, Y - 4, 34, 7);
+
+    // Cuerpo metálico
+    ctx.fillStyle = '#1e1e1e';
+    ctx.beginPath(); ctx.roundRect(bX - 44, Y - 10, 100, 22, 4); ctx.fill();
+    // Cargador curvo (rasgo distintivo del AK)
+    ctx.fillStyle = '#2d2d2d';
+    ctx.beginPath();
+    ctx.moveTo(bX - 10, Y + 12);
+    ctx.quadraticCurveTo(bX - 5, Y + 48, bX + 8, Y + 46);
+    ctx.quadraticCurveTo(bX + 18, Y + 46, bX + 22, Y + 12);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#444';
+    ctx.fillRect(bX - 6, Y + 14, 5, 26);
+    // Cañón
+    ctx.fillStyle = '#333';
+    ctx.fillRect(bX + 56, Y - 6, 46, 12);
+    // Boca del cañón
+    ctx.fillStyle = '#111';
+    ctx.fillRect(bX + 96, Y - 8, 8, 16);
+    // Mira delantera
+    ctx.fillStyle = '#777';
+    ctx.fillRect(bX + 88, Y - 14, 3, 8);
+    // Mira trasera
+    ctx.fillStyle = '#555';
+    ctx.fillRect(bX + 10, Y - 14, 14, 5);
+    ctx.fillRect(bX + 15, Y - 16, 4, 4);
+    // Agarre de pistola
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.roundRect(bX + 26, Y + 12, 13, 24, 3); ctx.fill();
+    // Flash de disparo
+    if (recoil > 4) {
+      ctx.fillStyle = 'rgba(255,200,0,0.7)';
+      ctx.beginPath(); ctx.ellipse(bX + 104, Y + 2, 14, 9, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,150,0.5)';
+      ctx.beginPath(); ctx.ellipse(bX + 112, Y + 2, 10, 6, 0, 0, Math.PI*2); ctx.fill();
+    }
+
+  // ── GRANADA ──────────────────────────────────────────────
+  } else if (currentWeapon === 'granada') {
+    // Mano
+    ctx.fillStyle = '#c8a07a';
+    ctx.beginPath(); ctx.ellipse(bX + 8, Y + 34, 15, 12, 0.1, 0, Math.PI*2); ctx.fill();
+
+    // Cuerpo de la granada
+    ctx.fillStyle = '#2d5a1b';
+    ctx.beginPath(); ctx.arc(bX, Y + 12, 26, 0, Math.PI*2); ctx.fill();
+    // Textura hexagonal (rayas)
+    ctx.strokeStyle = '#1a3a0f'; ctx.lineWidth = 1.5;
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath(); ctx.moveTo(bX - 22, Y + 12 + i*9); ctx.lineTo(bX + 22, Y + 12 + i*9); ctx.stroke();
+    }
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath(); ctx.moveTo(bX + i*11, Y - 14); ctx.lineTo(bX + i*11, Y + 38); ctx.stroke();
+    }
+    // Clip circular para que las rayas no salgan del orbe
+    // Brillo
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.beginPath(); ctx.ellipse(bX - 8, Y + 4, 10, 7, -0.5, 0, Math.PI*2); ctx.fill();
+    // Cuello metálico
+    ctx.fillStyle = '#aaa';
+    ctx.fillRect(bX - 7, Y - 16, 14, 8);
+    ctx.fillStyle = '#888';
+    ctx.fillRect(bX - 5, Y - 22, 10, 8);
+    // Palanca de seguridad
+    ctx.fillStyle = '#ccc';
+    ctx.fillRect(bX + 4, Y - 24, 16, 4);
+    ctx.fillRect(bX + 18, Y - 26, 4, 8);
+    // Pin
+    ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(bX + 2, Y - 24, 5, 0, Math.PI*2); ctx.stroke();
+
+  // ── PISTOLA ──────────────────────────────────────────────
+  } else {
+    // Mano derecha
+    ctx.fillStyle = '#c8a07a';
+    ctx.beginPath(); ctx.ellipse(bX + 6, Y + 40, 16, 12, 0.15, 0, Math.PI*2); ctx.fill();
+
+    // Agarre
+    ctx.fillStyle = '#1a1a2e';
+    ctx.beginPath(); ctx.roundRect(bX - 10, Y + 10, 22, 38, [2,2,6,6]); ctx.fill();
+    ctx.fillStyle = '#2a2a4a';
+    ctx.fillRect(bX - 7, Y + 14, 5, 28);
+    ctx.fillRect(bX - 7, Y + 20, 5, 4);
+    ctx.fillRect(bX - 7, Y + 28, 5, 4);
+    // Cuerpo principal
+    ctx.fillStyle = '#2c2c2c';
+    ctx.beginPath(); ctx.roundRect(bX - 14, Y - 22, 60, 32, 4); ctx.fill();
+    // Deslizador superior (slide)
+    ctx.fillStyle = '#383838';
+    ctx.beginPath(); ctx.roundRect(bX - 10, Y - 26, 50, 20, 3); ctx.fill();
+    ctx.fillStyle = '#444';
+    ctx.fillRect(bX + 24, Y - 24, 14, 16);
+    // Cañón
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(bX + 38, Y - 18, 26, 10);
+    // Boca del cañón
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(bX + 64, Y - 13, 6, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#444'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(bX + 64, Y - 13, 6, 0, Math.PI*2); ctx.stroke();
+    // Mira delantera
+    ctx.fillStyle = '#ff3333';
+    ctx.fillRect(bX + 56, Y - 30, 4, 6);
+    // Mira trasera
+    ctx.fillStyle = '#ff3333';
+    ctx.fillRect(bX, Y - 30, 10, 4);
+    ctx.fillRect(bX, Y - 30, 3, 7);
+    ctx.fillRect(bX + 7, Y - 30, 3, 7);
+    // Gatillo
+    ctx.strokeStyle = '#555'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(bX + 8, Y + 10); ctx.quadraticCurveTo(bX + 18, Y + 22, bX + 8, Y + 28); ctx.stroke();
+    // Flash de disparo
+    if (recoil > 4) {
+      ctx.fillStyle = 'rgba(255,220,80,0.75)';
+      ctx.beginPath(); ctx.ellipse(bX + 68, Y - 13, 12, 8, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,200,0.5)';
+      ctx.beginPath(); ctx.ellipse(bX + 74, Y - 13, 7, 5, 0, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  ctx.restore();
+}
+
+function makeEnemyEl(index) {
+  let el = enemies[index].el;
+  if (!el) {
+    el = document.createElement('img');
+    el.className = 'enemySprite';
+    el.src = dogGifSrc;
+    el.onerror = () => { el.onerror = null; el.src = dogFallbackSrc; };
+    el.onclick = (e) => { e.stopPropagation(); handleEnemyClick(index); };
+    enemyLayer.appendChild(el);
+    enemies[index].el = el;
+  }
+  return el;
+}
+
+function showEnemy(index, red) {
+  const e = enemies[index], el = makeEnemyEl(index);
+  el.style.left = e.x + 'px'; el.style.top = e.y + 'px';
+  el.style.display = 'block';
+  el.style.pointerEvents = 'auto';
+  el.classList.toggle('enemyHitbox', showHitboxes);
+  if (e.grey) {
+    el.style.filter = 'grayscale(1) brightness(0.8) contrast(1.2)';
+    el.style.transform = 'translate(-50%,-50%) scale(1.25)';
+  } else if (e.golden) {
+    el.style.filter = 'sepia(1) saturate(4) hue-rotate(5deg) brightness(1.3)';
+    el.style.transform = 'translate(-50%,-50%) scale(1.15)';
+  } else if (red) {
+    el.style.filter = 'hue-rotate(0deg) saturate(600%) brightness(1.1)';
+    el.style.transform = 'translate(-50%,-50%) scale(1)';
+  } else {
+    el.style.filter = 'none';
+    el.style.transform = 'translate(-50%,-50%) scale(1)';
+  }
+}
+
+function hideEnemy(index) {
+  const el = enemies[index].el;
+  if (el) { el.style.display = 'none'; el.style.pointerEvents = 'none'; }
+}
+
+function getRank(k) {
+  for (let i = rankLevels.length - 1; i >= 0; i--) if (k >= rankLevels[i].threshold) return rankLevels[i].name;
+  return rankLevels[0].name;
+}
+
+function showDamageText(text, color) {
+  const d = document.getElementById('deathMsg');
+  d.textContent = text; d.style.color = color; d.style.opacity = '1';
+  setTimeout(() => { d.style.opacity = '0'; }, 800);
+}
+
+function updateHUD() {
+  document.getElementById('kills').textContent = '💀 Total: ' + kills;
+  document.getElementById('sessionKills').textContent = '🎯 Partida: ' + sessionKills;
+  document.getElementById('timeText').textContent = '⏱ ' + roomTimer + 's';
+  document.getElementById('coins').textContent = coins;
+  const titleUnlocked = rankLevels.some(level => level.name === equippedTitle && kills >= level.threshold);
+  document.getElementById('rank').textContent = titleUnlocked ? equippedTitle : getRank(kills);
+  const normalComboLabel = (currentWeapon !== 'espada' || Date.now() < swordComboUntil) && combo > 1 ? '🔥 Combo x' + combo + (currentWeapon === 'espada' ? ' · 2×' : '!') : '';
+  document.getElementById('comboText').textContent = currentWeapon === 'sukuna'
+    ? `${normalComboLabel || '🔥 Combo x' + combo}  ·  🩸 Cortes de Sukuna: ${sukunaCombo}`
+    : normalComboLabel;
+  const swordPowerLabel = currentWeapon === 'espada' && Date.now() < swordComboUntil ? ` · 🟪 ${Math.ceil((swordComboUntil - Date.now()) / 1000)}s` : '';
+  document.getElementById('weaponText').textContent = currentWeapon === 'espada' ? '🗡️ Espada' + swordPowerLabel : '🔫 ' + currentWeapon.charAt(0).toUpperCase() + currentWeapon.slice(1);
+  if (multiplayer) {
+    document.getElementById('roomCode').textContent = 'Sala: ' + currentRoomCode;
+    document.getElementById('enemyKills').textContent = remoteAim.kills;
+  }
+  document.getElementById('rivalStatus').textContent = hasPeer ? '🟢 Rival: conectado' : (multiplayer ? '🟡 Rival: esperando...' : '🔴 Rival: -');
+  updateModeUI();
+  updateWeaponCursor();
+}
+
+function killEnemy(index, specialKill = false, swordKill = false) {
+  const e = enemies[index];
+  if (!e.alive) return;
+  const wasRed = e.red;
+  const wasGolden = e.golden;
+  const wasGrey = e.grey;
+  const swordComboActive = swordKill && Date.now() < swordComboUntil;
+  if (swordComboActive && wasRed) return;
+  const dropX = e.x, dropY = e.y;
+  e.alive = false; e.red = false; e.golden = false; e.grey = false;
+  if (e.el) { e.el.style.transform = 'translate(-50%,-50%) scale(1.4)'; setTimeout(() => { if(e.el) e.el.style.transform = 'translate(-50%,-50%) scale(1)'; }, 150); }
+
+  if (wasGrey) {
+    if (swordKill) combo = 0;
+    coins += 100;
+    safeStore(); updateCoins();
+    showDamageText('💀 +100 💰 — Expansión Perruna', '#aaaaaa');
+    activarDominio();
+    return;
+  } else if (wasGolden) {
+    coins += 25; kills++; sessionKills++;
+    if (swordKill) { if (swordComboActive) combo++; else combo = 0; }
+    shootAnim = 1;
+    showDamageText('🌟 +25 💰', '#ffd700');
+  } else if (wasRed && sukunaCanHitRed()) {
+    const domainMultiplier = Date.now() < sukunaDomainBoostUntil ? 3 : 1;
+    kills++; sessionKills++; combo += domainMultiplier;
+    const reward = (Math.floor(combo / 10) + 1) * domainMultiplier;
+    coins += reward; shootAnim = 1;
+    showDamageText(`🩸 Rojo eliminado · +${reward} 💰`, '#d8a8ff');
+  } else if (wasRed) {
+    if (swordKill) combo = 0;
+    if (escudoCharges > 0 && !escudoUsedThisGame) {
+      escudoCharges--;
+      escudoUsedThisGame = true;
+      safeStore(); renderInventory();
+      showDamageText('🛡️ ¡Combo protegido!', '#88ccff');
+    } else if (escudoUsedThisGame) {
+      combo = 0; coins = Math.max(0, coins - 10);
+      showDamageText('🛡️ Ya usaste el escudo esta partida', '#ff8844');
+    } else {
+      combo = 0; coins = Math.max(0, coins - 10);
+      showDamageText('-10 💸', '#ff4444');
+    }
+  } else {
+    kills++; sessionKills++;
+    if (swordKill && swordComboActive) combo++;
+    else if (swordKill) combo = 0;
+    else combo += (Date.now() < sukunaActiveUntil && sukunaActiveLevel === 4 ? 2 : 1) * (Date.now() < sukunaDomainBoostUntil ? 3 : 1);
+    const streakReward = swordKill && !swordComboActive ? 1 : Math.floor(combo / 10) + 1;
+    const sukunaDouble = Date.now() < sukunaActiveUntil && sukunaActiveLevel === 4;
+    const domainMultiplier = Date.now() < sukunaDomainBoostUntil ? 3 : 1;
+    const coinReward = specialKill ? 0.5 : (swordComboActive ? streakReward * 2 : streakReward) * (sukunaDouble ? 2 : 1) * domainMultiplier;
+    coins += coinReward;
+    shootAnim = 1;
+    showDamageText(specialKill ? '+0,5 💰 · Púrpura' : swordComboActive ? '+' + coinReward + ' 💰 · Combo x' + combo : streakReward > 1 ? '+' + streakReward + ' 💰 · Combo x' + combo : '+1 💰', '#44ff88');
+  }
+  if (specialKill) { kills++; sessionKills++; if (!swordKill) combo++; shootAnim = 1; }
+  safeStore(); updateCoins();
+  if (!wasRed && !wasGolden && !wasGrey && currentWeapon === 'sukuna') {
+    const masteryGain = (Date.now() < sukunaActiveUntil && sukunaActiveLevel === 4 ? 2 : 1) * (Date.now() < sukunaDomainBoostUntil ? 3 : 1);
+    sukunaCombo += masteryGain;
+  }
+  if (!wasRed && !wasGolden && !wasGrey) maybeDropSukunaFinger(dropX, dropY);
+  if (swordKill && !wasRed && !wasGrey) maybeDropSwordPowerItem(dropX, dropY);
+  // Fuera de la ronda especial de R, cortar un objetivo normal/dorado limpia
+  // los rojos restantes y genera inmediatamente la siguiente tanda.
+  if (swordKill && !swordWaveActive && !wasRed && !wasGrey) {
+    clearEnemies();
+    spawnNormalEnemy();
+  }
+}
+
+function maybeDropSwordPowerItem(x, y) {
+  const dropChance = Math.min(1, 0.05 * probMultiplicadorMulti);
+  if (swordPowerCollectedThisGame || swordPowerItem || Math.random() >= dropChance) return;
+  const item = document.createElement('div');
+  item.className = 'swordPowerItem';
+  item.title = 'Multiplicador: 2× combo y monedas — recogelo moviendo la espada';
+  item.setAttribute('aria-label', 'Multiplicador');
+  item.style.left = (x - 21) + 'px'; item.style.top = (y - 21) + 'px';
+  enemyLayer.appendChild(item);
+  swordPowerItem = item;
+  showDamageText('🟪 ¡Apareció un Multiplicador!', '#d89bff');
+  item._expireTimer = setTimeout(() => {
+    if (swordPowerItem !== item) return;
+    item.remove(); swordPowerItem = null;
+  }, 12000);
+}
+
+function activateSwordComboPower() {
+  swordPowerCollectedThisGame = true;
+  if (swordPowerItem) {
+    clearTimeout(swordPowerItem._expireTimer);
+    swordPowerItem.remove(); swordPowerItem = null;
+  }
+  combo = 0;
+  swordComboUntil = Date.now() + 60000;
+  showDamageText('🟪 ¡Multiplicador activo: combo y monedas x2 por 60 s!', '#d89bff');
+  updateHUD();
+}
+
+function updateSwordComboPower() {
+  if (swordComboUntil && Date.now() >= swordComboUntil) {
+    swordComboUntil = 0;
+    combo = 0;
+    showDamageText('Terminó el potenciador de espada', '#bb99cc');
+    updateHUD();
+  }
+}
+
+function spawnAkBurstDogs() {
+  let commonCount = enemies.filter(e => e.alive && !e.red && !e.golden && !e.grey).length;
+  const free = enemies.filter(e => !e.alive);
+  while (commonCount < 2 && free.length > 0) {
+    const pickAt = Math.floor(Math.random() * free.length);
+    const [slot] = free.splice(pickAt, 1);
+    spawnEnemyAt(slot.spot, false);
+    commonCount++;
+  }
+}
+
+function akBurstTick() {
+  if (!gameRunning || paused || Date.now() >= akBurstActiveUntil) {
+    if (akBurstTimer) { clearInterval(akBurstTimer); akBurstTimer = null; }
+    return;
+  }
+
+  let targets = enemies
+    .map((enemy, index) => ({enemy, index}))
+    .filter(({enemy}) => enemy.alive && !enemy.red && !enemy.golden && !enemy.grey);
+  if (targets.length === 0) {
+    spawnAkBurstDogs();
+    targets = enemies
+      .map((enemy, index) => ({enemy, index}))
+      .filter(({enemy}) => enemy.alive && !enemy.red && !enemy.golden && !enemy.grey);
+  }
+  if (targets.length === 0) return;
+
+  const target = targets[Math.floor(Math.random() * targets.length)];
+  killEnemy(target.index, false);
+  spawnAkBurstDogs();
+}
+
+function activateAkBurst() {
+  if (!gameRunning || paused || currentWeapon !== 'ak') return;
+  const now = Date.now();
+  if (now < akBurstActiveUntil) return;
+  if (now < akBurstCooldownUntil) {
+    showDamageText('AK lista en ' + Math.ceil((akBurstCooldownUntil - now) / 1000) + 's', '#ffcc66');
+    return;
+  }
+
+  akBurstActiveUntil = now + 2500;
+  akBurstCooldownUntil = now + 10000;
+  spawnAkBurstDogs();
+  showDamageText('🔫 ¡Ráfaga AK automática!', '#ffcc66');
+  akBurstTick();
+  if (!akBurstTimer) akBurstTimer = setInterval(akBurstTick, 250);
+}
+function handleEnemyClick(index) {
+  if (!gameRunning || paused) return;
+  if (currentWeapon === 'espada' && !sukunaCanHitRed()) return;
+  const wasRed = enemies[index].red;
+  killEnemy(index, false);
+  if (!wasRed) clearEnemies();
+  if (!wasRed) spawnNormalEnemy();
+}
+function missShot() {
+  if (escudoCharges > 0) {
+    escudoCharges--;
+    escudoUsedThisGame = true;
+    safeStore();
+    renderInventory();
+    showDamageText('🛡️ ¡Escudo salvó tu racha!', '#88ccff');
+  } else {
+    combo = 0;
+    showDamageText(currentWeapon === 'sukuna' ? 'Fallaste: combo normal perdido · cortes de Sukuna conservados' : '¡Fallaste! Racha perdida', '#ff4444');
+  }
+  updateHUD();
+}
+function updateWeaponCursor() {
+  const sword = document.getElementById('swordCursor');
+  if (!sword) return;
+  const usingSword = currentWeapon === 'espada' && gameRunning && !(Date.now() < sukunaActiveUntil && sukunaOwned);
+  sword.style.display = usingSword ? 'block' : 'none';
+  crosshairEl.style.display = usingSword ? 'none' : '';
+  canvas.style.cursor = usingSword ? 'none' : '';
+  if (!usingSword) lastSwordPoint = null;
+}
+function segmentDistance(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const lengthSq = dx * dx + dy * dy;
+  const t = lengthSq ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lengthSq)) : 0;
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+function hitWithSword(x1, y1, x2, y2, angle) {
+  // La hoja barre el tramo del cursor y conserva una zona estrecha, como un corte.
+  const dx = Math.cos(angle), dy = Math.sin(angle);
+  const ax = x2 - dx * 34, ay = y2 - dy * 34;
+  const bx = x2 + dx * 42, by = y2 + dy * 42;
+  if (swordPowerItem) {
+    const ix = parseFloat(swordPowerItem.style.left) + 21;
+    const iy = parseFloat(swordPowerItem.style.top) + 21;
+    if (segmentDistance(ix, iy, x1, y1, x2, y2) < 34 || Math.hypot(ix - x2, iy - y2) < 34) activateSwordComboPower();
+  }
+  const hitIndexes = [];
+  for (let i = 0; i < enemies.length; i++) {
+    const enemy = enemies[i];
+    if (!enemy.alive) continue;
+    if (enemy.red && Date.now() < swordComboUntil) continue;
+    const swept = segmentDistance(enemy.x, enemy.y, x1, y1, x2, y2);
+    const blade = segmentDistance(enemy.x, enemy.y, ax, ay, bx, by);
+    if (swept < 38 || blade < 25) hitIndexes.push(i);
+  }
+  for (const i of hitIndexes) {
+    if (!enemies[i].alive) continue;
+    const endsRegularWave = !swordWaveActive && !enemies[i].red && !enemies[i].grey;
+    killEnemy(i, false, true);
+    if (endsRegularWave) break;
+  }
+  if (dominioActivo) {
+    for (const el of [...dominioEnemigos]) {
+      if (el.style.display === 'none') continue;
+      const ex = parseFloat(el.style.left), ey = parseFloat(el.style.top);
+      if (segmentDistance(ex, ey, x1, y1, x2, y2) < 38 || segmentDistance(ex, ey, ax, ay, bx, by) < 25) clickDominioEnemigo(el, true);
+    }
+  }
+}
+function toggleHitboxes() {
+  showHitboxes = !showHitboxes;
+  enemyLayer.querySelectorAll('.enemySprite').forEach(el => el.classList.toggle('enemyHitbox', showHitboxes));
+  showDamageText(showHitboxes ? 'Q: hitboxes visibles' : 'Q: hitboxes ocultas', '#66ff99');
+}
+function activateSwordWave() {
+  if (!gameRunning || paused || currentWeapon !== 'espada' || dominioActivo) return;
+  const now = Date.now();
+  if (now < swordWaveCooldownUntil) {
+    showDamageText('Espada lista en ' + Math.ceil((swordWaveCooldownUntil - now) / 1000) + 's', '#ffcc66');
+    return;
+  }
+  clearEnemies();
+  const special = Math.random() < 0.025 ? 'golden' : '';
+  const specialSpot = special ? Math.floor(Math.random() * enemies.length) : -1;
+  enemies.forEach((enemy, i) => spawnEnemyAt(i, false, i === specialSpot && special === 'golden', i === specialSpot && special === 'grey'));
+  swordWaveActive = true;
+  swordWaveCooldownUntil = now + 10000;
+  showDamageText(special === 'golden' ? '🗡️ Ronda completa · ¡Dorado!' : '🗡️ ¡Todos los puntos activos!', '#f5df81');
+}
+window.addEventListener('mousemove', e => {
+  aimX = e.clientX; aimY = e.clientY;
+  crosshairEl.style.left = aimX + 'px'; crosshairEl.style.top = aimY + 'px';
+  if (currentWeapon === 'espada' && gameRunning && !(Date.now() < sukunaActiveUntil && sukunaOwned)) {
+    const sword = document.getElementById('swordCursor');
+    sword.style.left = aimX - 47 + 'px'; sword.style.top = aimY - 47 + 'px';
+    if (lastSwordPoint && !paused) {
+      const dx = aimX - lastSwordPoint.x, dy = aimY - lastSwordPoint.y;
+      if (dx * dx + dy * dy > 9) {
+        const angle = Math.atan2(dy, dx);
+        sword.style.transform = `rotate(${angle + Math.PI / 2}rad)`;
+        hitWithSword(lastSwordPoint.x, lastSwordPoint.y, aimX, aimY, angle);
+      }
+    }
+    lastSwordPoint = {x: aimX, y: aimY};
+  }
+});
+
+canvas.addEventListener('click', () => {
+  if (!gameRunning || paused) return;
+  const usingSukunaClick = sukunaCanHitRed();
+  if (currentWeapon === 'espada' && !usingSukunaClick) return;
+  if (usingSukunaClick) { sukunaCutUntil = Date.now() + 220; showSukunaCut(aimX, aimY); }
+  // Búsqueda del enemigo más cercano al cursor
+  let bestIndex = -1, bestDist = 60;
+  for (let i = 0; i < enemies.length; i++) {
+    if (!enemies[i].alive) continue;
+    const d = Math.hypot(enemies[i].x - aimX, enemies[i].y - aimY);
+    if (d < bestDist) { bestDist = d; bestIndex = i; }
+  }
+  if (bestIndex !== -1) handleEnemyClick(bestIndex);
+  else missShot();
+});
+
+window.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.shiftKey && e.key === 'Y' && adminUnlocked) { e.preventDefault(); openDevPanel(); return; }
+  if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+  if (e.key.toLowerCase() === 'q') { toggleHitboxes(); return; }
+  if (!gameRunning) return;
+  if (e.key === 'Escape') { paused ? resumeGame() : pauseGame(); return; }
+  if (paused) return;
+  if (e.key.toLowerCase() === 'w') { if (currentWeapon === 'sukuna') evolveSukuna(); return; }
+  if (e.key.toLowerCase() === 'r') {
+    if (currentWeapon === 'sukuna') activateSukuna();
+    else if (currentWeapon === 'ak') activateAkBurst();
+    else if (currentWeapon === 'espada') activateSwordWave();
+    return;
+  }
+  if (e.key === '2' && currentWeapon === 'sukuna') {
+    showDamageText('Púrpura y Sukuna no son compatibles. Equipá otra arma para usarlo.', '#d8a8ff');
+    return;
+  }
+  if (currentWeapon === 'espada' && e.key === '2') return;
+  if (e.key === '1') { selectedMode = 'normal'; updateModeUI(); }
+  if (e.key === '2' && purpuraEquipped && purpuraCharges > 0) {
+    if (purpuraUsedThisGame >= 3) { showDamageText('Límite: 3 púrpuras por partida', '#aa88ff'); return; }
+    if (Date.now() >= specialCooldownUntil) {
+      purpuraCharges--;
+      purpuraUsedThisGame++;
+      selectedMode = 'purpura';
+      specialActiveUntil = Date.now() + 1200;
+      specialCooldownUntil = Date.now() + 20000;
+      if (purpuraCharges <= 0) { purpuraEquipped = false; }
+      safeStore(); updateModeUI(); renderInventory();
+    }
+  }
+  if (e.key === '3' && monsterCharges > 0 && Date.now() >= monsterActiveUntil) {
+    monsterCharges--;
+    monsterActiveUntil = Date.now() + 60000;
+    safeStore(); updateModeUI();
+    showDamageText('🥤 ¡Monster activa! 60s', '#44ff88');
+  }
+});
+
+// ── DOMINIO PERRUNO ──────────────────────────────────────
+function hablarJapones() {
+  if (!window.speechSynthesis) return;
+  const msg = new SpeechSynthesisUtterance();
+  msg.text = 'よいち天下。展開、犬の領域。';
+  msg.lang = 'ja-JP';
+  msg.rate = 0.85;
+  msg.pitch = 0.7;
+  msg.volume = 1;
+  window.speechSynthesis.speak(msg);
+}
+
+function activarDominio() {
+  if (dominioActivo) return;
+  if (sukunaActiveUntil > Date.now()) stopSukunaSkill(true);
+  sukunaDomainBoostUntil = 0;
+  dominioActivo = true;
+  dominioNormalesAcertados = 0;
+  dominioFallosConsecutivos = 0;
+
+  hablarJapones();
+  showDamageText('展開・犬の領域 — EXPANSIÓN PERRUNA', '#aaaaaa');
+
+  // Ocultar enemigos normales
+  enemies.forEach(e => { e.alive = false; if (e.el) e.el.style.display = 'none'; });
+
+  // Mostrar overlay del dominio
+  const overlay = document.getElementById('dominioOverlay');
+  if (overlay) overlay.style.display = 'block';
+
+  spawnDominioEnemigos();
+}
+
+function spawnDominioEnemigos() {
+  const w = canvas.width, h = canvas.height;
+  dominioEnemigos.forEach(el => el.remove());
+  dominioEnemigos = [];
+
+  // Cantidad de rojos aumenta con los aciertos acumulados
+  const cantidadRojos = 28 + dominioNormalesAcertados * 4;
+  const posiciones = [];
+  for (let i = 0; i < cantidadRojos; i++) {
+    posiciones.push({
+      x: 55 + Math.random() * (w - 110),
+      y: 55 + Math.random() * (h * 0.82 - 55)
+    });
+  }
+
+  const normalIdx = Math.floor(Math.random() * posiciones.length);
+  const esDorado = Math.random() < 0.1;
+
+  posiciones.forEach((pos, i) => {
+    const el = document.createElement('img');
+    el.className = 'enemySprite';
+    el.src = dogGifSrc;
+    el.onerror = () => { el.onerror = null; el.src = dogFallbackSrc; };
+    el.style.position = 'absolute';
+    el.style.left = pos.x + 'px';
+    el.style.top = pos.y + 'px';
+    el.style.display = 'block';
+    el.style.pointerEvents = 'auto';
+    el.style.zIndex = '6';
+    el.classList.toggle('enemyHitbox', showHitboxes);
+    el.style.transition = 'left 1.2s linear, top 1.2s linear';
+
+    const esEspecial = i === normalIdx;
+    if (esEspecial && esDorado) {
+      el.style.filter = 'sepia(1) saturate(4) hue-rotate(5deg) brightness(1.3)';
+      el.style.transform = 'translate(-50%,-50%) scale(1.1)';
+      el.dataset.tipo = 'dorado';
+    } else if (esEspecial) {
+      // El normal se camufla — mismo tamaño que los rojos, solo color diferente
+      el.style.filter = 'none';
+      el.style.transform = 'translate(-50%,-50%) scale(1)';
+      el.dataset.tipo = 'normal';
+    } else {
+      el.style.filter = 'hue-rotate(0deg) saturate(600%) brightness(1.1)';
+      el.style.transform = 'translate(-50%,-50%) scale(1)';
+      el.dataset.tipo = 'rojo';
+    }
+
+    el.onclick = () => clickDominioEnemigo(el);
+    document.getElementById('enemyLayer').appendChild(el);
+    dominioEnemigos.push(el);
+
+    // Movimiento aleatorio cada 1.5s — más rápido cuantos más aciertos
+    const velocidad = Math.max(600, 1500 - dominioNormalesAcertados * 150);
+    const moverEl = () => {
+      if (!dominioActivo || el.style.display === 'none') return;
+      el.style.left = (55 + Math.random() * (w - 110)) + 'px';
+      el.style.top  = (55 + Math.random() * (h * 0.82 - 55)) + 'px';
+      el._moverTimer = setTimeout(moverEl, velocidad + Math.random() * 400);
+    };
+    el._moverTimer = setTimeout(moverEl, velocidad + Math.random() * 400);
+  });
+}
+
+function clickDominioEnemigo(el, swordHit = false) {
+  if (!dominioActivo) return;
+  const tipo = el.dataset.tipo;
+  el.style.display = 'none';
+  if (el._moverTimer) clearTimeout(el._moverTimer);
+
+  if (tipo === 'normal' || tipo === 'dorado') {
+    dominioNormalesAcertados++;
+    dominioFallosConsecutivos = 0;
+    const reward = tipo === 'dorado' ? 25 : 5;
+    coins += reward;
+    kills++; sessionKills++; if (swordHit) combo = 0; else combo++;
+    shootAnim = 1;
+    safeStore(); updateCoins();
+    const cont = document.getElementById('dominioContador');
+    if (cont) cont.textContent = `✅ ${dominioNormalesAcertados}/5 · ❌ ${dominioFallosConsecutivos}`;
+    showDamageText(tipo === 'dorado' ? `🌟 +100! Acierto ${dominioNormalesAcertados}/5` : `✅ Acierto ${dominioNormalesAcertados}/5`, '#44ff88');
+
+    if (dominioNormalesAcertados >= 5) {
+      escaparDominio();
+      return;
+    }
+    // Nuevo mapa — más difícil
+    setTimeout(spawnDominioEnemigos, 300);
+
+  } else {
+    // Rojo — fallo: se pierden TODOS los aciertos
+    dominioFallosConsecutivos++;
+    const aciertosAnteriores = dominioNormalesAcertados;
+    dominioNormalesAcertados = 0; // reset de aciertos
+    combo = 0;
+    safeStore();
+    const cont = document.getElementById('dominioContador');
+    if (cont) cont.textContent = `✅ 0/5 · ❌ ${dominioFallosConsecutivos}/5`;
+    showDamageText(`❌ Fallo ${dominioFallosConsecutivos}/5 — perdiste ${aciertosAnteriores} acierto${aciertosAnteriores !== 1 ? 's' : ''}`, '#ff4444');
+
+    if (dominioFallosConsecutivos >= 5) {
+      perderDominio();
+    } else {
+      setTimeout(spawnDominioEnemigos, 300);
+    }
+  }
+}
+
+function escaparDominio() {
+  dominioActivo = false;
+  dominioEnemigos.forEach(el => { if (el._moverTimer) clearTimeout(el._moverTimer); el.remove(); });
+  dominioEnemigos = [];
+  const overlay = document.getElementById('dominioOverlay');
+  if (overlay) overlay.style.display = 'none';
+  if (currentWeapon === 'sukuna') { sukunaDomainBoostUntil = Date.now() + 10000; showDamageText('🐾 Dominio ganado · x3 combo y oro por 10 s', '#d8a8ff'); }
+  else showDamageText('🐾 ¡Escapaste del dominio!', '#44ff88');
+  setTimeout(() => spawnNormalEnemy(), 500);
+}
+
+function perderDominio() {
+  dominioActivo = false;
+  stopSukunaSkill(false); sukunaDomainBoostUntil = 0; combo = 0; safeStore();
+  dominioEnemigos.forEach(el => { if (el._moverTimer) clearTimeout(el._moverTimer); el.remove(); });
+  dominioEnemigos = [];
+  const overlay = document.getElementById('dominioOverlay');
+  if (overlay) overlay.style.display = 'none';
+  showDamageText('💀 El dominio te consumió', '#ff0000');
+  setTimeout(() => goToMenu(), 2500);
+}
+// ─────────────────────────────────────────────────────────
+
+function updateEnemies() {
+  if (dominioActivo) return; // el dominio maneja sus propios enemigos
+  const now = Date.now();
+  const specialActive = now < specialActiveUntil;
+
+  if (specialActive) {
+    // En modo púrpura: solo 1 perro visible a la vez
+    const aliveCount = enemies.filter(e => e.alive).length;
+    if (aliveCount === 0) {
+      const idx = Math.floor(Math.random() * enemies.length);
+      spawnEnemyAt(idx, false);
+    }
+    enemies.forEach((e, i) => {
+      if (e.alive) { showEnemy(i, false); killEnemy(i, true); }
+      else { hideEnemy(i); }
+    });
+    return;
+  }
+
+  let anyAlive = false;
+  for (let i = 0; i < enemies.length; i++) {
+    const e = enemies[i];
+    if (e.alive) {
+      anyAlive = true;
+      if (now - e.spawnAt > 4500) {
+        const escapedRed = e.red;
+        e.alive = false; e.red = false;
+        if (currentWeapon === 'espada' && now < swordComboUntil && escapedRed) {
+          // Los rojos se ignoran y no penalizan durante el potenciador.
+        } else if (escudoCharges > 0 && !escudoUsedThisGame) {
+          escudoCharges--;
+          escudoUsedThisGame = true;
+          safeStore(); renderInventory();
+          showDamageText('🛡️ ¡Combo protegido!', '#88ccff');
+        } else {
+          combo = 0; safeStore();
+          showDamageText('¡Escapó!', '#ff8800');
+        }
+      } else {
+        showEnemy(i, e.red);
+      }
+    } else {
+      hideEnemy(i);
+    }
+  }
+
+  if (!anyAlive) {
+    if (swordWaveActive) swordWaveActive = false;
+    spawnNormalEnemy();
+  }
+}
+
+function sendRoomState() { sendFirebaseState(); }
+
+function drawSpecialOverlay() {
+  ctx.save(); ctx.globalAlpha = 0.22; ctx.fillStyle = '#8a2be2';
+  ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.restore();
+}
+
+function loop() {
+  if (gameRunning && !paused) {
+    updateSwordComboPower();
+    roomTimer = Math.floor((Date.now() - gameStartTime) / 1000);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    if (invert) ctx.filter = 'invert(1)';
+    if (invertScreen) { ctx.translate(canvas.width, canvas.height); ctx.scale(-1, -1); }
+
+    drawRoom();
+    if (dominioActivo) {
+      // Fondo oscuro rojizo para el dominio
+      ctx.save();
+      ctx.fillStyle = 'rgba(60,0,0,0.45)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Borde rojo pulsante
+      ctx.strokeStyle = `rgba(180,0,0,${0.5 + 0.3 * Math.sin(Date.now() / 300)})`;
+      ctx.lineWidth = 18;
+      ctx.strokeRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
+    if (Date.now() < specialActiveUntil) drawSpecialOverlay();
+
+    updateEnemies();
+
+    if (multiplayer && remoteAim.seen) {
+      const px = Math.max(40, Math.min(canvas.width - 40, remoteAim.x));
+      const py = Math.max(40, Math.min(canvas.height - 40, remoteAim.y));
+      ctx.fillStyle = '#ff6060'; ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center';
+      ctx.fillText('⊕ Rival', px, py - 20);
+    }
+
+    ctx.restore();
+    drawWeapon();
+    updateHUD();
+
+    if (multiplayer) {
+      sendFirebaseState();
+      if (Date.now() - lastPeerSeenAt > 5000) hasPeer = false;
+    }
+
+    if (Date.now() >= specialActiveUntil && selectedMode === 'purpura') {
+      selectedMode = 'normal'; updateModeUI();
+    }
+  }
+
+  requestAnimationFrame(loop);
+}
+
+// Init
+document.getElementById('menuCoins').textContent = coins;
+document.getElementById('adminMenuButton').classList.toggle('hidden', !adminUnlocked);
+document.getElementById('inGameAdminButton').classList.toggle('hidden', !adminUnlocked || !gameRunning);
+renderInventory();
+updateCoins();
+updateModeUI();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
